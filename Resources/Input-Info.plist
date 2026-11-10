@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>vi</string>
+<key>CFBundleExecutable</key><string>TelexMiniInput</string>
+<key>CFBundleIdentifier</key><string>com.telexmini.mac.input</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleName</key><string>TelexMini</string>
+<key>CFBundleDisplayName</key><string>TelexMini Vietnamese</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>1.0.0</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>LSBackgroundOnly</key><true/>
+<key>LSUIElement</key><true/>
+<key>NSPrincipalClass</key><string>NSApplication</string>
+<key>InputMethodConnectionName</key><string>TelexMini_Connection</string>
+<key>InputMethodServerControllerClass</key><string>TelexInputController</string>
+<key>InputMethodServerDelegateClass</key><string>TelexInputController</string>
+<key>TISIntendedLanguage</key><string>vi</string>
+<key>tsInputMethodCharacterRepertoireKey</key><array><string>Latn</string></array>
+<key>tsInputMethodIconFileKey</key><string>TelexMini.icns</string>
+</dict></plist>
