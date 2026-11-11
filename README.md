@@ -46,7 +46,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-Build output: `windows/TelexMini.exe` (ignored by Git). Only run one TelexMini instance. The program uses native Windows APIs, so it must be compiled and tested on a Windows machine. A verified previous build exists on the development PC; the bundled copy of source was made from that project.
+Build output: `windows/TelexMini.exe` (ignored by Git). The build **overwrites this one canonical executable** instead of creating version-suffixed filenames. Close any running `TelexMini.exe` before rebuilding. Only run one TelexMini instance. The program uses native Windows APIs, so it must be compiled and tested on a Windows machine. A verified previous build exists on the development PC; the bundled copy of source was made from that project.
 
 ## macOS (Swift 5 mode, Xcode)
 
@@ -59,6 +59,10 @@ bash TelexMiniMac/tools/build.sh
 Build outputs: `build/TelexMini.app` and `build/TelexMini Settings.app` (ignored by Git). The system input method uses InputMethodKit and the preferences app uses SwiftUI. Both build on Apple Silicon. See [MACOS-README.md](MACOS-README.md) for manual install, setup, tested scope and release blockers.
 
 **macOS is a technical preview, not a commercial release.** Unit tests and builds pass, but first-time input-source activation and typing across apps still need end-to-end verification after logging out/in. The default ad-hoc signature is suitable only for local testing.
+
+## Windows settings and dictionary UI
+
+The WinForms dashboard uses an explicit two-column layout so the sidebar cannot overlap the content. The light/dark palette has readable button labels, an accent-mode switch, and an in-app typing preview. Both **English dictionary** and **Vietnamese Telex preference** menus open native searchable add/edit/remove dialogs directly in TelexMini (no Notepad). Changes are applied when saved, and user files are kept in `%LOCALAPPDATA%\\TelexMini`; older portable TXT files beside the EXE remain readable.
 
 ## English typing reliability
 
@@ -95,4 +99,4 @@ git log -1 --oneline
 # git push -u origin main
 ```
 
-Source is committed; generated EXEs/DMGs/apps, machine-specific settings and signing credentials are ignored. No remote is configured and no push is performed automatically.
+Source is committed; generated EXEs/DMGs/apps, machine-specific settings and signing credentials are ignored. Git remotes are managed by the repository owner; no push is performed automatically.

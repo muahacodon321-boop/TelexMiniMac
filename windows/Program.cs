@@ -60,8 +60,8 @@ namespace TelexMini
             pauseItem.CheckedChanged+=delegate { manualPause=pauseItem.Checked; SyncPerformance(); UpdateMode(); };
             menu.Items.Add(pauseItem);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Thêm từ tiếng Anh...",null,delegate { EditDictionary(EnglishLexicon.EnglishPath,"# Mỗi dòng một từ tiếng Anh cần giữ nguyên (không có dấu cách)."); });
-            menu.Items.Add("Ưu tiên Telex cho từ...",null,delegate { EditDictionary(EnglishLexicon.VietnamesePath,"# Mỗi dòng một chuỗi phím Telex ưu tiên tiếng Việt. Ví dụ: as"); });
+            menu.Items.Add("Quản lý từ tiếng Anh...",null,delegate { EditDictionary(false); });
+            menu.Items.Add("Ưu tiên Telex cho từ...",null,delegate { EditDictionary(true); });
             menu.Items.Add("Nạp lại từ điển",null,delegate { EnglishLexicon.Reload(); keyboard.SmartEnglish=keyboard.SmartEnglish; UpdateMode(); });
             menu.Items.Add("Hiện nút chuyển",null,delegate { Show(); WindowState=FormWindowState.Normal; });
             menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Thoát",null,delegate { Close(); });
@@ -75,8 +75,8 @@ namespace TelexMini
             gameGuard=new GameGuard(delegate(bool active) { gameActive=active; SyncPerformance(); UpdateMode(); });
             modeTimer.Tick+=delegate { gameGuard.Check(); UpdateMode(); }; modeTimer.Start();
             chrome=new ModernChrome(this,toggle,status,autoEnglish,restoreWords,smartEnglish,hide,exit,
-                delegate { EditDictionary(EnglishLexicon.EnglishPath,"# Mỗi dòng một từ tiếng Anh"); },
-                delegate { EditDictionary(EnglishLexicon.VietnamesePath,"# Mỗi dòng một chuỗi Telex"); },
+                delegate { EditDictionary(false); },
+                delegate { EditDictionary(true); },
                 delegate { EnglishLexicon.Reload(); keyboard.SmartEnglish=keyboard.SmartEnglish; });
             SyncPerformance();
             UpdateMode();
@@ -94,13 +94,19 @@ namespace TelexMini
                 IntPtr handle=bitmap.GetHicon(); var icon=(Icon)Icon.FromHandle(handle).Clone(); Native.DestroyIcon(handle); return icon;
             }
         }
-        static void EditDictionary(string file, string instructions)
+        void EditDictionary(bool vietnamese)
         {
+            // Never rewrite the text being edited with the global keyboard hook.
+            // The modal operates entirely inside TelexMini (no Notepad).
+            keyboard.Suspended=true;
             try {
-                if(!File.Exists(file)) File.WriteAllText(file,instructions+Environment.NewLine,new UTF8Encoding(false));
-                Process.Start("notepad.exe","\""+file+"\"");
-            } catch(Exception ex) {
-                MessageBox.Show("Không mở được từ điển: "+ex.Message,"Telex Mini");
+                if(DictionaryEditor.Edit(this,vietnamese)) {
+                    EnglishLexicon.Reload();
+                    keyboard.SmartEnglish=keyboard.SmartEnglish;
+                }
+            } finally {
+                SyncPerformance();
+                UpdateMode();
             }
         }
         void SyncPerformance() {
@@ -125,7 +131,9 @@ namespace TelexMini
             toggle.Text=pause ? "E  ·  NHƯỜNG PHÍM" : v ? "V  ·  TIẾNG VIỆT" :
                 kind==InputContextKind.Password && keyboard.Enabled ? "E  ·  MẬT KHẨU" :
                 automatic ? "E  ·  TỰ ĐỘNG" : "E  ·  ENGLISH";
-            toggle.BackColor=v ? Color.FromArgb(18,122,86) : Color.FromArgb(79,91,110);
+            toggle.BackColor=chrome!=null ? Color.FromArgb(226,255,246) :
+                (v ? Color.FromArgb(18,122,86) : Color.FromArgb(79,91,110));
+            toggle.ForeColor=chrome!=null ? Color.FromArgb(9,79,75) : Color.White;
             tray.Icon=v ? vietIcon : englishIcon;
             Icon=tray.Icon;
             string reason=kind==InputContextKind.Password ? "Ô mật khẩu" : kind==InputContextKind.Terminal ? "Terminal" : kind==InputContextKind.Unavailable ? "Chưa nhận diện được ô nhập" : "Đang nhận diện ô nhập";

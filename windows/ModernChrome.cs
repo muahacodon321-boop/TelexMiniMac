@@ -24,6 +24,14 @@ namespace TelexMini
             path.CloseFigure();
             return path;
         }
+        protected override void OnResize(EventArgs e) {
+            base.OnResize(e);
+            if(Width>0 && Height>0) {
+                using(var path=Rounded(new Rectangle(0,0,Width,Height),CornerRadius)) {
+                    Region=new Region(path);
+                }
+            }
+        }
         protected override void OnPaint(PaintEventArgs e) {
             base.OnPaint(e);
             e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;
@@ -43,7 +51,7 @@ namespace TelexMini
         readonly Button modeButton;
         readonly Label status,heroTag,modeCaption,modeReason, footer;
         readonly CheckBox autoEnglish,restoreWords,smartEnglish;
-        readonly Button themeButton;
+        readonly Button themeButton, hideButton, exitButton;
         readonly RoundedPanel hero, leftCard, rightCard, previewCard;
         readonly Panel sidebar;
         readonly TextBox inputPreview;
@@ -54,13 +62,18 @@ namespace TelexMini
                               Button hide,Button exit,Action openEnglish,Action openVietnamese,Action reload)
         {
             form=owner; modeButton=toggle; status=statusLabel;
+            hideButton=hide; exitButton=exit;
             autoEnglish=auto; restoreWords=restore; smartEnglish=smart;
             dark=UserPreferences.Bool("DarkTheme",true);
             form.SuspendLayout();
             form.Controls.Clear();
-            form.ClientSize=new Size(904,608);
-            form.MinimumSize=new Size(904,608);
-            form.MaximumSize=new Size(1120,760);
+            // Keep the content separate from navigation at any DPI scaling.
+            // The original Dock.Fill plus Dock.Left z-order let the sidebar
+            // paint over the left edge of the content panel.
+            form.ClientSize=new Size(990,680);
+            form.MinimumSize=new Size(950,650);
+            form.MaximumSize=new Size(1440,980);
+            form.AutoScaleMode=AutoScaleMode.Dpi;
             form.FormBorderStyle=FormBorderStyle.Sizable;
             form.TopMost=false;
             form.AutoScroll=false;
@@ -68,24 +81,33 @@ namespace TelexMini
             form.Font=new Font("Segoe UI",9.5f);
             form.StartPosition=FormStartPosition.CenterScreen;
 
-            sidebar=new Panel { Dock=DockStyle.Left,Width=212 };
-            form.Controls.Add(sidebar);
-            var main=new Panel { Dock=DockStyle.Fill,AutoScroll=true };
-            form.Controls.Add(main);
-            main.BringToFront();
-            sidebar.BringToFront();
+            var root=new TableLayoutPanel {
+                Dock=DockStyle.Fill, Margin=Padding.Empty, Padding=Padding.Empty,
+                ColumnCount=2, RowCount=1
+            };
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,216));
+            root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent,100));
+            form.Controls.Add(root);
+            sidebar=new Panel { Dock=DockStyle.Fill, Margin=Padding.Empty, Padding=Padding.Empty };
+            var main=new Panel {
+                Dock=DockStyle.Fill, Margin=Padding.Empty, Padding=Padding.Empty,
+                AutoScroll=true, AutoScrollMinSize=new Size(710,660)
+            };
+            root.Controls.Add(sidebar,0,0);
+            root.Controls.Add(main,1,0);
             var logo=new RoundedPanel { Location=new Point(22,24),Size=new Size(42,42),CornerRadius=13,
                 StartColor=Color.FromArgb(20,186,156),EndColor=Color.FromArgb(16,136,163) };
             sidebar.Controls.Add(logo);
             logo.Controls.Add(Label("T",new Rectangle(0,1,42,38),Color.White,21f,true,ContentAlignment.MiddleCenter));
-            sidebar.Controls.Add(Label("telexmini",new Rectangle(73,24,128,25),Color.White,16f,true));
-            sidebar.Controls.Add(Label("SMART INPUT SYSTEM",new Rectangle(74,51,135,19),Color.FromArgb(134,158,183),7.5f,true));
+            sidebar.Controls.Add(Label("telexmini",new Rectangle(72,23,137,28),Color.White,14f,true));
+            sidebar.Controls.Add(Label("SMART INPUT",new Rectangle(73,51,130,19),Color.FromArgb(134,158,183),7.4f,true));
             var separator=new Panel { Location=new Point(22,91),Size=new Size(168,1),BackColor=Color.FromArgb(44,63,83) };
             sidebar.Controls.Add(separator);
             sidebar.Controls.Add(Label("WORKSPACE",new Rectangle(24,113,164,18),Color.FromArgb(124,149,171),8f,true));
             var navHome=SideButton("◈  Tổng quan",new Point(15,144)); sidebar.Controls.Add(navHome);
-            navHome.Click+=delegate { inputPreview.Focus(); };
-            var navEnglish=SideButton("＋  Thêm từ tiếng Anh",new Point(15,199)); sidebar.Controls.Add(navEnglish);
+            navHome.Click+=delegate { main.AutoScrollPosition=new Point(0,0); inputPreview.Focus(); };
+            var navEnglish=SideButton("＋  Từ điển Anh",new Point(15,199)); sidebar.Controls.Add(navEnglish);
             navEnglish.Click+=delegate { openEnglish(); };
             var navVietnamese=SideButton("≡  Ưu tiên Telex",new Point(15,248)); sidebar.Controls.Add(navVietnamese);
             navVietnamese.Click+=delegate { openVietnamese(); };
@@ -142,7 +164,7 @@ namespace TelexMini
             previewCard=new RoundedPanel { Location=new Point(30,498),Size=new Size(632,67),CornerRadius=15 };
             main.Controls.Add(previewCard);
             previewCard.Controls.Add(Label("THỬ GÕ NGAY",new Rectangle(17,6,155,18),Color.Empty,8f,true));
-            inputPreview=new TextBox { Location=new Point(17,27),Size=new Size(595,26),BorderStyle=BorderStyle.None,
+            inputPreview=new TextBox { Location=new Point(17,27),Size=new Size(595,27),BorderStyle=BorderStyle.FixedSingle,
                                       Font=new Font("Segoe UI",11.5f),Text="",
                                       ShortcutsEnabled=true };
             previewCard.Controls.Add(inputPreview);
@@ -152,15 +174,15 @@ namespace TelexMini
             exit.Size=new Size(64,30); exit.Location=new Point(159,572);exit.Text="Thoát";
             exit.Font=new Font("Segoe UI",8.5f); exit.FlatStyle=FlatStyle.Flat; exit.FlatAppearance.BorderSize=0;
             main.Controls.Add(hide);main.Controls.Add(exit);
-            footer=Label("1.566+ từ nền · Hoạt động offline",new Rectangle(386,577,274,20),Color.Empty,8f,false,
+            footer=Label(EnglishLexicon.WordCount.ToString("N0")+" từ nền · Hoạt động offline",new Rectangle(386,577,274,20),Color.Empty,8f,false,
                 ContentAlignment.MiddleRight);
             main.Controls.Add(footer);
 
-            // Right side minimum sizes are intentionally fixed; min-width avoids clipping.
+            // The main content always begins AFTER the sidebar. An internal
+            // scrollbar takes over instead of allowing overlap at narrow widths.
             form.Resize+=delegate {
-                int width=Math.Max(692,form.ClientSize.Width-212);
-                main.AutoScrollMinSize=new Size(692,608);
-                themeButton.Left=width-180;
+                int available=Math.Max(710,main.ClientSize.Width);
+                themeButton.Left=Math.Max(512,available-180);
             };
             form.ResumeLayout(true);
             ApplyTheme();
@@ -199,12 +221,20 @@ namespace TelexMini
                 if(child!=sidebar) ApplyToContainer(child);
             leftCard.StartColor=rightCard.StartColor=previewCard.StartColor=card;
             leftCard.EndColor=rightCard.EndColor=previewCard.EndColor=card;
+            // A transparent child label paints the parent's BackColor, not
+            // its custom gradient. Match both to avoid white rectangles.
+            leftCard.BackColor=rightCard.BackColor=previewCard.BackColor=card;
             leftCard.Outline=rightCard.Outline=previewCard.Outline=outline;
             hero.StartColor=Color.FromArgb(12,119,112);
             hero.EndColor=Color.FromArgb(24,72,115);
+            hero.BackColor=hero.StartColor;
             hero.Outline=Color.FromArgb(34,137,140);
             themeButton.Text=dark ? "☀  Giao diện sáng" : "☾  Giao diện tối";
             themeButton.BackColor=card;themeButton.ForeColor=ink;
+            foreach(var button in new[]{hideButton,exitButton}) {
+                button.ForeColor=ink;button.BackColor=card;
+                button.FlatAppearance.MouseOverBackColor=outline;
+            }
             for(int i=0;i<sidebar.Controls.Count;i++) {
                 var b=sidebar.Controls[i] as Button;
                 if(b!=null) { b.BackColor=i==5 ? Color.FromArgb(26,92,98) : Color.FromArgb(14,26,43);
@@ -214,7 +244,8 @@ namespace TelexMini
                 box.ForeColor=ink;box.BackColor=card;
                 box.Font=new Font("Segoe UI",9.3f);
             }
-            inputPreview.BackColor=card; inputPreview.ForeColor=ink;
+            inputPreview.BackColor=dark ? Color.FromArgb(36,52,72) : Color.FromArgb(239,245,252);
+            inputPreview.ForeColor=ink;
             modeButton.BackColor=Color.FromArgb(230,255,248);
             modeButton.ForeColor=Color.FromArgb(9,79,75);
             heroTag.ForeColor=Color.FromArgb(195,246,232);

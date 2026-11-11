@@ -53,7 +53,7 @@ Nhận diện mật khẩu chỉ đọc cờ `IsPassword` hoặc thuộc tính k
 
 Bộ từ điển offline có thêm các họ từ `parameter`, `parameters`, `parameterized`, `parameterization`, `parametric`, `params`, `parser`, `parallel` cùng các từ liên quan. Trong chế độ **Bảo vệ từ tiếng Anh**, `p`, `pa`, `par` ... `parameter` đều phải giữ nguyên ngay khi gõ, không đợi dấu cách cuối từ. Bản test có kiểm tra từng ký tự này.
 
-Trường hợp từ Anh hoàn toàn mới chưa có trong từ điển, có thể vào menu khay **Thêm từ tiếng Anh...** để bổ sung. Sau đó chọn **Nạp lại từ điển**. Lỗi trước đây nằm ở từ vắng mặt trong bộ từ điển gốc, không phải do tốc độ gõ.
+Trường hợp từ Anh hoàn toàn mới chưa có trong từ điển, vào mục **Từ điển Anh** ngay trong ứng dụng, thêm từ và bấm **Lưu** để áp dụng. Không cần Notepad. Lỗi trước đây nằm ở từ vắng mặt trong bộ từ điển gốc, không phải do tốc độ gõ.
 
 ## Thuật toán song ngữ v2 (không cần từ điển cho mọi từ)
 
@@ -73,11 +73,11 @@ Mặc định bật **Bảo vệ từ tiếng Anh (offline)**. Telex Mini có t�
 Ví dụ: `office`, `assets`, `testing`, `framework`, `plugin`, `password` được giữ nguyên trong chế độ V; `tieengs` → **tiếng**, `vieetj` → **việt** và `truowngf` → **trường**. Các từ có cách gõ trùng hoàn toàn như `as` (tiếng Anh) và `á` (Telex) không thể tự nhận diện 100%. Theo mặc định, `as` được ưu tiên tiếng Anh khi bật nhận diện thông minh; tắt tính năng này để trở lại Telex thuần, hoặc ghi `as` trong danh sách ưu tiên tiếng Việt.
 
 Bấm phải biểu tượng V/E ở khay:
-- **Thêm từ tiếng Anh...** mở `EnglishWords.txt` để bổ sung từ (mỗi dòng một từ Latin).
-- **Ưu tiên Telex cho từ...** mở `VietnameseOverrides.txt` để thêm chuỗi phím muốn xử lý như Telex.
-- **Nạp lại từ điển** tải các thay đổi từ hai file ngay, không cần khởi động lại.
+- **Từ điển Anh** mở cửa sổ chỉnh sửa ngay trong TelexMini: tìm kiếm, thêm, sửa, xóa, lưu từ tiếng Anh.
+- **Ưu tiên Telex** mở cửa sổ tương tự để chỉnh các chuỗi phím ưu tiên tiếng Việt.
+- **Nạp lại từ điển** đọc lại những thay đổi bên ngoài mà không cần khởi động lại.
 
-Hai file này chỉ được tạo nếu bạn mở chức năng chỉnh từ điển. Chú ý: từ mới thêm có thể tạo thêm các tiền tố mơ hồ; nếu thấy từ Việt bị giữ dấu quá lâu, thêm chuỗi đó vào danh sách ưu tiên Telex hoặc tắt bảo vệ tiếng Anh.
+Mỗi lần bấm **Lưu**, từ điển được cập nhật ngay. Dữ liệu cá nhân lưu tại `%LOCALAPPDATA%\\TelexMini\\EnglishWords.txt` và `%LOCALAPPDATA%\\TelexMini\\VietnameseOverrides.txt`, không lưu cùng EXE để tránh lỗi quyền ghi khi cài trong Program Files. Các file cũ bên cạnh EXE vẫn được đọc để tương thích bản portable. Chú ý: từ mới thêm có thể tạo thêm các tiền tố mơ hồ; nếu thấy từ Việt bị giữ dấu quá lâu, thêm chuỗi đó vào danh sách ưu tiên Telex hoặc tắt bảo vệ tiếng Anh.
 
 ## Bảo vệ ô mật khẩu (luôn bật)
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace TelexMini
@@ -141,6 +143,7 @@ namespace TelexMini
             edit.Backspace(); edit.Backspace();
             foreach(char c in "as") edit.Push(c);
             Equal("Deleting whole word restores Telex","á",edit.Text);
+            TestSettingsLayoutAndDictionary();
             Console.WriteLine("INPUT struct size: "+Marshal.SizeOf(typeof(Native.INPUT)));
             if(Marshal.SizeOf(typeof(Native.INPUT))!=(IntPtr.Size==8 ? 40 : 28)) failures++;
             if(args.Length>0 && args[0]=="--integration") {
@@ -152,6 +155,81 @@ namespace TelexMini
                 finally { ActivateKeyboardLayout(previous,0); }
             }
             Console.WriteLine("Failures: "+failures); return failures==0 ? 0 : 1;
+        }
+        static void TestSettingsLayoutAndDictionary()
+        {
+            using(var host=new Form())
+            using(var mode=new Button())
+            using(var status=new Label())
+            using(var auto=new CheckBox())
+            using(var restore=new CheckBox())
+            using(var smart=new CheckBox())
+            using(var hide=new Button())
+            using(var exit=new Button()) {
+                var ui=new ModernChrome(host,mode,status,auto,restore,smart,hide,exit,
+                    delegate {},delegate {},delegate {});
+                host.CreateControl();
+                host.PerformLayout();
+                var layout=host.Controls.Count>0 ? host.Controls[0] as TableLayoutPanel : null;
+                if(layout!=null) layout.PerformLayout();
+                Control nav=layout==null ? null : layout.GetControlFromPosition(0,0);
+                Control content=layout==null ? null : layout.GetControlFromPosition(1,0);
+                Equal("Settings layout columns do not overlap","True",
+                    (nav!=null && content!=null && content.Left>=nav.Right && content.Width>0).ToString());
+                Equal("Settings width supports navigation and content","True",
+                    (host.ClientSize.Width>=950 && layout!=null && layout.ColumnCount==2).ToString());
+            }
+            string testFile=Path.Combine(Path.GetTempPath(),
+                "TelexMini-Dictionary-UI-"+Guid.NewGuid().ToString("N")+".txt");
+            try {
+                File.WriteAllText(testFile,"",System.Text.Encoding.UTF8);
+                using(Form editor=DictionaryEditor.CreateForTests(false,testFile)) {
+                Equal("Dictionary editor opens in app","True",
+                    (editor.Controls.Count>0 && editor.Text.Contains("Anh")).ToString());
+                var textboxes=new List<TextBox>();
+                var buttons=new List<Button>();
+                var lists=new List<ListBox>();
+                CollectControls(editor,textboxes,buttons,lists);
+                Equal("Dictionary inline editing controls","True",
+                    (textboxes.Count>=2 && lists.Count==1 && buttons.Count>=4).ToString());
+                if(textboxes.Count>=2 && lists.Count==1 && buttons.Count>=4) {
+                    // Search is first, entry is second. Never invoke Save,
+                    // so this test does not touch a user's dictionary on disk.
+                    textboxes[1].Text="telexminiuitestword";
+                    // Button.PerformClick ignores invisible test forms. Exercise the
+                    // same add/remove callbacks without showing a window.
+                    typeof(DictionaryEditor).GetMethod("AddWord",BindingFlags.Instance|BindingFlags.NonPublic)
+                        .Invoke(editor,new object[0]);
+                    Equal("Dictionary add without external editor","True",
+                        lists[0].Items.Contains("telexminiuitestword").ToString());
+                    typeof(DictionaryEditor).GetMethod("RemoveWord",BindingFlags.Instance|BindingFlags.NonPublic)
+                        .Invoke(editor,new object[0]);
+                    Equal("Dictionary remove without external editor","False",
+                        lists[0].Items.Contains("telexminiuitestword").ToString());
+                    // Save a word to a temporary test-only file and verify
+                    // that the editor persists it, without changing user data.
+                    textboxes[1].Text="telexminiuitestword";
+                    typeof(DictionaryEditor).GetMethod("AddWord",BindingFlags.Instance|BindingFlags.NonPublic)
+                        .Invoke(editor,new object[0]);
+                    typeof(DictionaryEditor).GetMethod("SaveWords",BindingFlags.Instance|BindingFlags.NonPublic)
+                        .Invoke(editor,new object[0]);
+                    Equal("Dictionary save persists words","True",
+                        (File.ReadAllText(testFile).Contains("telexminiuitestword")).ToString());
+                }
+                }
+            } finally {
+                if(File.Exists(testFile)) File.Delete(testFile);
+            }
+        }
+
+        static void CollectControls(Control root,List<TextBox> textboxes,List<Button> buttons,List<ListBox> lists)
+        {
+            foreach(Control c in root.Controls) {
+                if(c is TextBox) textboxes.Add((TextBox)c);
+                if(c is Button) buttons.Add((Button)c);
+                if(c is ListBox) lists.Add((ListBox)c);
+                CollectControls(c,textboxes,buttons,lists);
+            }
         }
         sealed class IntegrationForm : Form
         {
