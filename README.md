@@ -68,6 +68,17 @@ The WinForms dashboard uses an explicit two-column layout so the sidebar cannot 
 
 The offline lexicon includes common development terms such as `parameter`, `parameters`, `parameterized`, `parameterization`, `parallel` and `parser`. With Smart English enabled, it protects **each prefix as you type**, not only the completed word. Regression tests assert that `p`, `pa`, `par`, `para`, ... remain unchanged through `parameter` and verify Vietnamese Telex examples still work.
 
+### Immediate Telex shaping (smart bilingual)
+
+When Vietnamese mode is on, a second vowel key now performs its Telex
+transformation **immediately**, even when the raw letters look like an English
+prefix. For example: `bo` → `boo` produces **bô** at the second `o`; `boon`
+becomes **bôn** and `boons` becomes **bốn**. The same applies to `aa → â`
+and `ee → ê`. English words such as `book`, `books`, `good` and `boost`
+are recovered once recognized. Intermediate rendering of ambiguous English
+words may temporarily show a Telex accent: this is unavoidable while also
+requiring immediate, speculative Vietnamese accents.
+
 ### Smart Bilingual v2: algorithmic detection
 
 The typing path now uses three **offline** signals, not just a list of known English words:

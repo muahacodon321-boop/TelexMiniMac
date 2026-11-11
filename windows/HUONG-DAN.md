@@ -55,6 +55,16 @@ Bộ từ điển offline có thêm các họ từ `parameter`, `parameters`, `p
 
 Trường hợp từ Anh hoàn toàn mới chưa có trong từ điển, vào mục **Từ điển Anh** ngay trong ứng dụng, thêm từ và bấm **Lưu** để áp dụng. Không cần Notepad. Lỗi trước đây nằm ở từ vắng mặt trong bộ từ điển gốc, không phải do tốc độ gõ.
 
+## Dấu mũ Telex phải xuất hiện tức thời
+
+Đã sửa trường hợp `boo` bị giữ nguyên vì đoán nhầm tiền tố tiếng Anh:
+`bo` → nhấn `o` lần hai → **bô** ngay, `boon` → **bôn**, `boons`
+→ **bốn**. `aa → â`, `ee → ê`, `oo → ô` cũng xuất hiện ngay khi
+gõ phím lặp, không đợi dấu cách hay hết từ. Nếu tiếp tục gõ thành một từ
+tiếng Anh đã nhận diện (`book`, `good`, `boost`) thì TelexMini sẽ hoàn
+nguyên chữ gốc. Một vài từ Anh có thể tạm hiển thị dấu ở phần tiền tố
+mơ hồ; đây là đánh đổi cần thiết để giữ nguyên yêu cầu bỏ dấu tức thời.
+
 ## Thuật toán song ngữ v2 (không cần từ điển cho mọi từ)
 
 TelexMini nhận diện Anh–Việt theo **3 lớp**:

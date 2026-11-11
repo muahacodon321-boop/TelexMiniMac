@@ -127,8 +127,16 @@ black
 blue
 bold
 book
+booked
+booking
 books
 boolean
+boost
+boosted
+booster
+boosters
+boosting
+boosts
 bottom
 bought
 boy

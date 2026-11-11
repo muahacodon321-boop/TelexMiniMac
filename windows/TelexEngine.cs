@@ -15,15 +15,16 @@ namespace TelexMini
         public string Text { get; private set; }
         // Off by default for engine-only use; enabled in the keyboard application.
         public bool SmartEnglish { get; set; }
-        bool literalWord, englishCandidate, foreignWord;
+        bool literalWord, englishCandidate, foreignWord, telexShaped;
         string rawWord="";
         public TelexEngine() { Reset(); }
-        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; rawWord=""; }
+        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; telexShaped=false; rawWord=""; }
         public void Backspace() {
             if (Text.Length > 0) Text = Text.Substring(0, Text.Length - 1);
             rawWord=Text; // Never restore deleted characters after an edit.
             englishCandidate=SmartEnglish && EnglishLexicon.HasPrefix(rawWord);
             foreignWord=SmartEnglish && HasForeignStart(rawWord);
+            telexShaped=Text!=rawWord;
             if (Text.Length == 0) literalWord = false;
         }
         string Literal(string text) { literalWord = true; return Text = text; }
@@ -124,17 +125,34 @@ namespace TelexMini
             const string codas="||c|ch|m|n|ng|nh|p|t|";
             return codas.IndexOf("|"+ending+"|",StringComparison.Ordinal)<0;
         }
+        // A doubled vowel is an explicit Telex shaping key, even if the
+        // unaccented text is a prefix of an English word (boo -> bô).
+        // Do not force the user to finish the syllable before showing its accent.
+        static bool ImmediateShapeKey(string raw)
+        {
+            int n=raw.Length;
+            if(n<2) return false;
+            char last=char.ToLowerInvariant(raw[n-1]);
+            return (last=='a' || last=='e' || last=='o') &&
+                   char.ToLowerInvariant(raw[n-2])==last;
+        }
         public string Push(char key)
         {
             rawWord+=key;
+            bool shapeNow=ImmediateShapeKey(rawWord);
             if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
                 if (foreignWord || HasForeignStart(rawWord)) {
                     foreignWord=true;
                     englishCandidate=false;
+                    telexShaped=false;
                     return Text=rawWord;
                 }
-                if (EnglishLexicon.HasPrefix(rawWord)) {
+                // After an immediate vowel shape, let Telex continue until an
+                // actual known English word is completed (book restores boo).
+                if (!shapeNow && (!telexShaped || EnglishLexicon.IsWord(rawWord)) &&
+                    EnglishLexicon.HasPrefix(rawWord)) {
                     englishCandidate=true;
+                    telexShaped=false;
                     return Text=rawWord;
                 }
             }
@@ -144,12 +162,14 @@ namespace TelexMini
                 Text=""; literalWord=false;
                 foreach(char c in raw) PushCore(c);
             } else PushCore(key);
+            if(shapeNow && Text!=rawWord) telexShaped=true;
             // If a transformed token cannot be a Vietnamese syllable any more,
             // undo the speculative accent immediately and keep subsequent keys
             // literal. No dictionary lookup or network request is required.
             if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord) &&
                 rawWord!=Text && ImpossibleVietnamese(Text)) {
                 foreignWord=true;
+                telexShaped=false;
                 return Text=rawWord;
             }
             return Text;

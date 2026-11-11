@@ -67,6 +67,26 @@ import Foundation
             if e.text==raw && e.finish()==raw {passed+=1}
             else {failed+=1;print("FAIL unknown English: \(raw) => \(e.text) / \(e.finish())")}
         }
+        // Accent keys must be applied immediately, even if an English word
+        // such as "book" shares the same prefix. An exact English word can
+        // recover later without delaying Vietnamese composition.
+        let immediate:[(String,String)] = [
+            ("b","b"),("bo","bo"),("boo","bô"),("boon","bôn"),
+            ("boons","bốn"),("aa","â"),("ee","ê"),("oo","ô"),
+            ("tiee","tiê"),("tieen","tiên"),("tieengs","tiếng")
+        ]
+        for (raw,expected) in immediate {
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==expected {passed+=1}
+            else {failed+=1;print("FAIL instant Telex \(raw) => \(e.text), expected \(expected)")}
+        }
+        for (raw,expected) in [("book","book"),("books","books"),("good","good"),("boost","boost")] {
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==expected && e.finish()==expected {passed+=1}
+            else {failed+=1;print("FAIL English after immediate shape: \(raw) => \(e.text) / \(e.finish())")}
+        }
         let e=TelexComposer();for c in "tieengs" { _=e.push(c) }
         e.backspace();_=e.push("g")
         if e.text=="tiếng" {passed+=1} else {failed+=1;print("FAIL backspace: \(e.text)")}

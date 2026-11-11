@@ -16,6 +16,7 @@ final class TelexComposer {
     private var literal = false
     private var englishCandidate = false
     private var foreignWord = false
+    private var telexShaped = false
     var smartEnglish = true
     var restoreInvalid = true
     private(set) static var english = Set<String>()
@@ -66,12 +67,13 @@ final class TelexComposer {
         let w=word.lowercased()
         return !vietnamese.contains(w) && (english.contains(w) || prefixes.contains(w))
     }
-    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false }
+    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false; telexShaped=false }
     func backspace() {
         if !text.isEmpty { text.removeLast() }
         raw=text
         englishCandidate=smartEnglish && Self.isEnglishPrefix(raw)
         foreignWord=smartEnglish && Self.foreignStart(raw)
+        telexShaped=text != raw
         if text.isEmpty { literal=false }
     }
     private static func row(_ c: Character) -> Int? {
@@ -221,17 +223,27 @@ final class TelexComposer {
         let codas:Set<String>=["","c","ch","m","n","ng","nh","p","t"]
         return !codas.contains(String(ending))
     }
+    private static func immediateShapeKey(_ raw:String) -> Bool {
+        let chars=Array(raw.lowercased())
+        guard chars.count >= 2 else {return false}
+        let last=chars[chars.count-1]
+        return ("aeo".contains(last) && chars[chars.count-2] == last)
+    }
     func push(_ key: Character) -> String {
         raw.append(key)
+        let shapeNow=Self.immediateShapeKey(raw)
         if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) {
             if foreignWord || Self.foreignStart(raw) {
                 foreignWord=true
                 englishCandidate=false
+                telexShaped=false
                 text=raw
                 return text
             }
-            if Self.isEnglishPrefix(raw) {
+            if !shapeNow && (!telexShaped || Self.english.contains(raw.lowercased())) &&
+               Self.isEnglishPrefix(raw) {
                 englishCandidate=true
+                telexShaped=false
                 text=raw
                 return text
             }
@@ -242,9 +254,11 @@ final class TelexComposer {
             text=""; literal=false
             for c in old { core(c) }
         } else {core(key)}
+        if shapeNow && raw != text {telexShaped=true}
         if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) &&
            raw != text && Self.impossibleVietnamese(text) {
             foreignWord=true
+            telexShaped=false
             text=raw
         }
         return text

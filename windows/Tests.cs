@@ -70,6 +70,25 @@ namespace TelexMini
                 Equal("Smart Vietnamese "+word,reference.Text,bilingual.Text);
                 Equal("Smart Vietnamese boundary "+word,reference.Finish(true),bilingual.Finish(true));
             }
+            // Telex shaping must happen on the second vowel, never at the
+            // word boundary. English words sharing a prefix can recover later.
+            foreach(var pair in new[] {
+                new[]{"b","b"}, new[]{"bo","bo"},new[]{"boo","bô"},
+                new[]{"boon","bôn"},new[]{"boons","bốn"},
+                new[]{"aa","â"},new[]{"ee","ê"},new[]{"oo","ô"},
+                new[]{"tiee","tiê"},new[]{"tieen","tiên"},
+                new[]{"tieengs","tiếng"}
+            }) {
+                var bilingual=new TelexEngine {SmartEnglish=true};
+                foreach(char c in pair[0]) bilingual.Push(c);
+                Equal("Instant Telex "+pair[0],pair[1],bilingual.Text);
+            }
+            foreach(string word in new[]{"book","books","good","boost"}) {
+                var bilingual=new TelexEngine {SmartEnglish=true};
+                foreach(char c in word) bilingual.Push(c);
+                Equal("English after instant Telex "+word,word,bilingual.Text);
+                Equal("English boundary after instant Telex "+word,word,bilingual.Finish(true));
+            }
             // Algorithmic recovery of unfamiliar English words, not dictionary matches.
             foreach(string word in new[] {
                 "paradoxical","paramagnets","privatization","fluctuation",
