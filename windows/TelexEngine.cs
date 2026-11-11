@@ -15,16 +15,18 @@ namespace TelexMini
         public string Text { get; private set; }
         // Off by default for engine-only use; enabled in the keyboard application.
         public bool SmartEnglish { get; set; }
-        bool literalWord, englishCandidate, foreignWord, telexShaped;
-        string rawWord="";
+        bool literalWord, englishCandidate, foreignWord, telexShaped, lastTelexKey;
+        string rawWord="", pendingEscapeRaw=null;
         public TelexEngine() { Reset(); }
-        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; telexShaped=false; rawWord=""; }
+        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; pendingEscapeRaw=null; rawWord=""; }
         public void Backspace() {
             if (Text.Length > 0) Text = Text.Substring(0, Text.Length - 1);
             rawWord=Text; // Never restore deleted characters after an edit.
             englishCandidate=SmartEnglish && EnglishLexicon.HasPrefix(rawWord);
             foreignWord=SmartEnglish && HasForeignStart(rawWord);
             telexShaped=Text!=rawWord;
+            lastTelexKey=false;
+            pendingEscapeRaw=null;
             if (Text.Length == 0) literalWord = false;
         }
         string Literal(string text) { literalWord = true; return Text = text; }
@@ -138,7 +140,41 @@ namespace TelexMini
         }
         public string Push(char key)
         {
+            // A repeat can also be the start of a longer English word:
+            // off + i -> offi..., ass + e -> asse... . Delay finalizing the
+            // omission until we see the next character.
+            if(pendingEscapeRaw!=null) {
+                string candidate=pendingEscapeRaw+key;
+                pendingEscapeRaw=null;
+                if(SmartEnglish && EnglishLexicon.HasPrefix(candidate) &&
+                   !EnglishLexicon.PreferVietnamesePrefix(candidate)) {
+                    rawWord=candidate;
+                    Text=candidate;
+                    literalWord=false; foreignWord=false;
+                    englishCandidate=true; telexShaped=false;
+                    lastTelexKey=false;
+                    return Text;
+                }
+            }
+            // Repeating the last effective Telex key escapes the conversion
+            // for the entire current token. One repeat is a command to undo,
+            // not a character to add: boosst -> boost, ass -> as.
+            bool repeated=rawWord.Length>0 &&
+                char.ToLowerInvariant(rawWord[rawWord.Length-1])==char.ToLowerInvariant(key);
+            bool shortToneEscape=rawWord.Length==2 && repeated &&
+                "sfrxj".IndexOf(char.ToLowerInvariant(key))>=0 &&
+                "aeiouy".IndexOf(char.ToLowerInvariant(rawWord[0]))>=0;
+            if(repeated && !literalWord && (lastTelexKey || shortToneEscape)) {
+                // The previous raw key is already part of the literal word.
+                // The repeated key is consumed instead of appended.
+                pendingEscapeRaw=rawWord+key;
+                Text=rawWord; literalWord=true; englishCandidate=false;
+                foreignWord=false; telexShaped=false; lastTelexKey=false;
+                return Text;
+            }
+            string prior=Text;
             rawWord+=key;
+            lastTelexKey=false;
             bool shapeNow=ImmediateShapeKey(rawWord);
             if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
                 if (foreignWord || HasForeignStart(rawWord)) {
@@ -165,6 +201,7 @@ namespace TelexMini
                 Text=""; literalWord=false;
                 foreach(char c in raw) PushCore(c);
             } else PushCore(key);
+            lastTelexKey=Text!=prior+key && !literalWord;
             if(shapeNow && Text!=rawWord) telexShaped=true;
             // If a transformed token cannot be a Vietnamese syllable any more,
             // undo the speculative accent immediately and keep subsequent keys
@@ -180,6 +217,8 @@ namespace TelexMini
         // Conservative syllable check + optional offline English recognition.
         public string Finish(bool restoreInvalid)
         {
+            if(pendingEscapeRaw!=null && SmartEnglish && EnglishLexicon.IsWord(pendingEscapeRaw))
+                return pendingEscapeRaw;
             if (SmartEnglish && !literalWord &&
                 (foreignWord ||
                  (EnglishLexicon.IsWord(rawWord) &&

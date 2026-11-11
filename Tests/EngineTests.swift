@@ -34,9 +34,14 @@ import Foundation
             for c in raw {
                 prefix.append(c)
                 let actual=e.push(c)
-                if actual != prefix {
+                // A repeated Telex key is an immediate escape. It may
+                // temporarily omit the duplicate at "off"/"ass" until the
+                // next key proves the user meant "office"/"assets".
+                let expectedPrefix=(prefix=="off" ? "of" :
+                                    prefix=="ass" ? "as" : prefix)
+                if actual != expectedPrefix {
                     failed+=1
-                    print("FAIL English in-progress: \(raw) at \(prefix) => \(actual)")
+                    print("FAIL English in-progress: \(raw) at \(prefix) => \(actual), expected \(expectedPrefix)")
                 } else { passed+=1 }
             }
             if e.text==raw && e.finish()==raw { passed+=1 }
@@ -97,6 +102,21 @@ import Foundation
             for c in raw { _=e.push(c) }
             if e.text==expected && e.finish()==expected { passed+=1 }
             else { failed+=1;print("FAIL Vietnamese priority: \(raw) => \(e.text) / \(e.finish()), expected \(expected)") }
+        }
+        // UniKey-style repeat: a second copy of the most recent active
+        // Telex key cancels the conversion and keeps the word literal.
+        let escapes:[(String,String)] = [
+            ("booss","boos"), ("boosst","boost"),("boosster","booster"),
+            ("guitarr","guitar"),("ass","as"),("aaa","aa"),
+            ("eee","ee"),("ooo","oo"),("ddd","dd"),
+            ("aass","aas"),("uoww","uow"),
+            ("boons","bốn"),("been","bên")
+        ]
+        for (raw,want) in escapes {
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==want && e.finish()==want {passed+=1}
+            else {failed+=1;print("FAIL Telex repeat escape \(raw) => \(e.text) / \(e.finish()), expected \(want)")}
         }
         let e=TelexComposer();for c in "tieengs" { _=e.push(c) }
         e.backspace();_=e.push("g")

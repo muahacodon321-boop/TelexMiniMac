@@ -17,6 +17,8 @@ final class TelexComposer {
     private var englishCandidate = false
     private var foreignWord = false
     private var telexShaped = false
+    private var lastTelexKey = false
+    private var pendingEscapeRaw:String? = nil
     var smartEnglish = true
     var restoreInvalid = true
     private(set) static var english = Set<String>()
@@ -67,13 +69,15 @@ final class TelexComposer {
         let w=word.lowercased()
         return !vietnamese.contains(w) && (english.contains(w) || prefixes.contains(w))
     }
-    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false; telexShaped=false }
+    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; pendingEscapeRaw=nil }
     func backspace() {
         if !text.isEmpty { text.removeLast() }
         raw=text
         englishCandidate=smartEnglish && Self.isEnglishPrefix(raw)
         foreignWord=smartEnglish && Self.foreignStart(raw)
         telexShaped=text != raw
+        lastTelexKey=false
+        pendingEscapeRaw=nil
         if text.isEmpty { literal=false }
     }
     private static func row(_ c: Character) -> Int? {
@@ -230,7 +234,43 @@ final class TelexComposer {
         return ("aeo".contains(last) && chars[chars.count-2] == last)
     }
     func push(_ key: Character) -> String {
+        if let pending=pendingEscapeRaw {
+            let candidate=pending+String(key)
+            pendingEscapeRaw=nil
+            if smartEnglish && Self.isEnglishPrefix(candidate) &&
+                !Self.preferVietnamesePrefix(candidate) {
+                raw=candidate
+                text=candidate
+                literal=false
+                foreignWord=false
+                englishCandidate=true
+                telexShaped=false
+                lastTelexKey=false
+                return text
+            }
+        }
+        // The next copy of an effective Telex key is an escape command:
+        // undo speculative accents and keep a literal token until boundary.
+        let repeated=raw.last.map {String($0).lowercased()==String(key).lowercased()} ?? false
+        // Very short tone sequences (as -> á, is -> í) can be protected
+        // by the English prefix dictionary, so allow a repeat to escape
+        // them even if no Telex transformation was displayed yet.
+        let shortToneEscape=raw.count == 2 && repeated &&
+            "sfrxj".contains(Character(String(key).lowercased())) &&
+            "aeiouy".contains(Character(String(raw.first!).lowercased()))
+        if repeated && !literal && (lastTelexKey || shortToneEscape) {
+            pendingEscapeRaw=raw+String(key)
+            text=raw
+            literal=true
+            englishCandidate=false
+            foreignWord=false
+            telexShaped=false
+            lastTelexKey=false
+            return text
+        }
+        let prior=text
         raw.append(key)
+        lastTelexKey=false
         let shapeNow=Self.immediateShapeKey(raw)
         if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) {
             if foreignWord || Self.foreignStart(raw) {
@@ -258,6 +298,7 @@ final class TelexComposer {
             text=""; literal=false
             for c in old { core(c) }
         } else {core(key)}
+        lastTelexKey=(text != prior+String(key)) && !literal
         if shapeNow && raw != text {telexShaped=true}
         if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) &&
            raw != text && Self.impossibleVietnamese(text) {
@@ -268,6 +309,10 @@ final class TelexComposer {
         return text
     }
     func finish() -> String {
+        if let pending=pendingEscapeRaw,smartEnglish,
+            Self.english.contains(pending.lowercased()),!Self.vietnamese.contains(pending.lowercased()) {
+            return pending
+        }
         if smartEnglish && !literal &&
             (foreignWord || (Self.english.contains(raw.lowercased()) &&
                              !(telexShaped && Self.looksVietnamese(text)))) &&

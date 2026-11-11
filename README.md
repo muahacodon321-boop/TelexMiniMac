@@ -89,6 +89,23 @@ cannot form valid Vietnamese syllables, such as `book` and `good`, are
 recovered as English. Fully ambiguous words (for example `boost → bốt`)
 will now favor Vietnamese; select English mode to type those literally.
 
+### Repeat a Telex key to cancel an accent (UniKey-style)
+
+With Vietnamese mode enabled, **repeat the most recent effective Telex key**
+to undo its change and continue the current word literally, without switching
+to English mode. A repeat acts as an escape keystroke rather than adding the
+duplicate character. Examples: `boons → bốn`, but `boosst → boost`;
+`guitarr → guitar`; `ass → as`; `aaa → aa`, `eee → ee`,
+`ooo → oo`, `ddd → dd`, and `uoww → uow`.
+This also works after a final consonant when that consonant follows a Telex
+tone command.
+
+Some repeated letters could instead start an English word. If the next key
+makes a recognized English prefix, the engine restores the repeated character:
+`office` and `assets` still work normally. Legacy intentional escapes such
+as `offfice → office` and `asssets → assets` are also retained. This
+behavior remains local; no text history or cloud detection is involved.
+
 ### Smart Bilingual v2: algorithmic detection
 
 The typing path now uses three **offline** signals, not just a list of known English words:

@@ -58,7 +58,9 @@ namespace TelexMini
                 foreach(char c in word) {
                     prefix+=c;
                     bilingual.Push(c);
-                    Equal("Smart English prefix "+prefix,prefix,bilingual.Text);
+                    string expectedPrefix=prefix=="off" ? "of" :
+                        prefix=="ass" ? "as" : prefix;
+                    Equal("Smart English prefix "+prefix,expectedPrefix,bilingual.Text);
                 }
                 Equal("Smart English while typing "+word,word,bilingual.Text);
                 Equal("Smart English boundary "+word,word,bilingual.Finish(true));
@@ -101,6 +103,21 @@ namespace TelexMini
                 foreach(char c in pair[0]) bilingual.Push(c);
                 Equal("Vietnamese priority "+pair[0],pair[1],bilingual.Text);
                 Equal("Vietnamese priority at boundary "+pair[0],pair[1],bilingual.Finish(true));
+            }
+            // Repeating an effective Telex key restores the original raw
+            // typing and keeps subsequent letters literal until boundary.
+            foreach(var pair in new[] {
+                new[]{"booss","boos"},new[]{"boosst","boost"},
+                new[]{"boosster","booster"},new[]{"guitarr","guitar"},
+                new[]{"ass","as"},new[]{"aaa","aa"},new[]{"eee","ee"},
+                new[]{"ooo","oo"},new[]{"ddd","dd"},
+                new[]{"aass","aas"},new[]{"uoww","uow"},
+                new[]{"boons","bốn"},new[]{"been","bên"}
+            }) {
+                var bilingual=new TelexEngine {SmartEnglish=true};
+                foreach(char c in pair[0]) bilingual.Push(c);
+                Equal("Repeated Telex escape "+pair[0],pair[1],bilingual.Text);
+                Equal("Repeated Telex escape boundary "+pair[0],pair[1],bilingual.Finish(true));
             }
             // Algorithmic recovery of unfamiliar English words, not dictionary matches.
             foreach(string word in new[] {

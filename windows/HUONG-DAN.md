@@ -78,6 +78,28 @@ kết quả ghép âm tiết tiếng Việt không hợp lệ. Khi hoàn toàn m
 ví dụ `boost → bốt`, ứng dụng ưu tiên tiếng Việt khi chế độ V đang bật;
 chuyển sang E để gõ nguyên văn tiếng Anh.
 
+## Gõ lặp phím để hủy dấu (kiểu UniKey)
+
+Trong chế độ V, nếu một phím Telex đã tạo dấu hoặc biến đổi chữ, gõ lại
+phím đó **thêm một lần** sẽ hủy biến đổi và trả lại các phím gốc của
+từ đang nhập. Sau đó các chữ tiếp theo được giữ nguyên, không cần
+chuyển sang chế độ E.
+
+Ví dụ:
+- `boons → bốn`, nhưng `boosst → boost` (phím `s` thứ hai hủy dấu).
+- `guitarr → guitar`; `ass → as`.
+- `aaa → aa`, `eee → ee`, `ooo → oo`, `ddd → dd`,
+  `uoww → uow`.
+- `office` và `assets` vẫn nhập đúng: một phím lặp có thể là tiền tố
+  tiếng Anh. Nếu chữ tiếp theo khớp từ tiếng Anh đã biết, bộ gõ khôi phục
+  ký tự bị bỏ qua.
+- Vẫn hỗ trợ các ví dụ gõ lặp cũ như `offfice → office`,
+  `asssets → assets`.
+
+**Lưu ý:** Cơ chế hủy này chỉ áp dụng cho từ đang gõ, không ghi lại
+nội dung hay mật khẩu. Khi gặp từ không thể đoán chắc, mày có thể
+chủ động hủy dấu bằng phím lặp.
+
 ## Thuật toán song ngữ v2 (không cần từ điển cho mọi từ)
 
 TelexMini nhận diện Anh–Việt theo **3 lớp**:
