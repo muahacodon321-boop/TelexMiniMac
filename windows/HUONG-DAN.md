@@ -65,6 +65,19 @@ tiếng Anh đã nhận diện (`book`, `good`, `boost`) thì TelexMini sẽ ho�
 nguyên chữ gốc. Một vài từ Anh có thể tạm hiển thị dấu ở phần tiền tố
 mơ hồ; đây là đánh đổi cần thiết để giữ nguyên yêu cầu bỏ dấu tức thời.
 
+## Ưu tiên tiếng Việt khi đang bật V
+
+Nếu người dùng chủ động gõ chuỗi tạo dấu mũ Telex, và kết quả là âm tiết
+tiếng Việt hợp lệ, **không được cho từ điển tiếng Anh ghi đè**.
+Ví dụ `bee → bê`, `been → bên`, `beens → bến`,
+`teen → tên`, `seen → sên`. Dấu xuất hiện ngay trong lúc gõ
+và giữ nguyên khi nhấn dấu cách.
+
+Những từ như `book`, `good` vẫn được hoàn nguyên thành tiếng Anh vì
+kết quả ghép âm tiết tiếng Việt không hợp lệ. Khi hoàn toàn mơ hồ,
+ví dụ `boost → bốt`, ứng dụng ưu tiên tiếng Việt khi chế độ V đang bật;
+chuyển sang E để gõ nguyên văn tiếng Anh.
+
 ## Thuật toán song ngữ v2 (không cần từ điển cho mọi từ)
 
 TelexMini nhận diện Anh–Việt theo **3 lớp**:

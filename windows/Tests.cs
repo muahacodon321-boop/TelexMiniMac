@@ -83,11 +83,24 @@ namespace TelexMini
                 foreach(char c in pair[0]) bilingual.Push(c);
                 Equal("Instant Telex "+pair[0],pair[1],bilingual.Text);
             }
-            foreach(string word in new[]{"book","books","good","boost"}) {
+            foreach(var pair in new[] {
+                new[]{"book","book"}, new[]{"books","books"},
+                new[]{"good","good"}, new[]{"boost","bốt"}
+            }) {
                 var bilingual=new TelexEngine {SmartEnglish=true};
-                foreach(char c in word) bilingual.Push(c);
-                Equal("English after instant Telex "+word,word,bilingual.Text);
-                Equal("English boundary after instant Telex "+word,word,bilingual.Finish(true));
+                foreach(char c in pair[0]) bilingual.Push(c);
+                Equal("English after instant Telex "+pair[0],pair[1],bilingual.Text);
+                Equal("English boundary after instant Telex "+pair[0],pair[1],bilingual.Finish(true));
+            }
+            foreach(var pair in new[] {
+                new[]{"bee","bê"},new[]{"been","bên"},
+                new[]{"beens","bến"},new[]{"teen","tên"},
+                new[]{"seen","sên"},new[]{"boost","bốt"}
+            }) {
+                var bilingual=new TelexEngine {SmartEnglish=true};
+                foreach(char c in pair[0]) bilingual.Push(c);
+                Equal("Vietnamese priority "+pair[0],pair[1],bilingual.Text);
+                Equal("Vietnamese priority at boundary "+pair[0],pair[1],bilingual.Finish(true));
             }
             // Algorithmic recovery of unfamiliar English words, not dictionary matches.
             foreach(string word in new[] {

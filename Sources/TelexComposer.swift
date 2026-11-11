@@ -240,7 +240,11 @@ final class TelexComposer {
                 text=raw
                 return text
             }
-            if !shapeNow && (!telexShaped || Self.english.contains(raw.lowercased())) &&
+            // A valid Vietnamese syllable wins after the user explicitly
+            // enters a Telex shaping key, even if English has the same spelling.
+            if !shapeNow &&
+               (!telexShaped ||
+                (Self.english.contains(raw.lowercased()) && !Self.looksVietnamese(text))) &&
                Self.isEnglishPrefix(raw) {
                 englishCandidate=true
                 telexShaped=false
@@ -264,7 +268,9 @@ final class TelexComposer {
         return text
     }
     func finish() -> String {
-        if smartEnglish && !literal && (foreignWord || Self.english.contains(raw.lowercased())) &&
+        if smartEnglish && !literal &&
+            (foreignWord || (Self.english.contains(raw.lowercased()) &&
+                             !(telexShaped && Self.looksVietnamese(text)))) &&
             !Self.vietnamese.contains(raw.lowercased()) { return raw }
         if englishCandidate {
             let replay=TelexComposer()

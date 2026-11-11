@@ -147,9 +147,12 @@ namespace TelexMini
                     telexShaped=false;
                     return Text=rawWord;
                 }
-                // After an immediate vowel shape, let Telex continue until an
-                // actual known English word is completed (book restores boo).
-                if (!shapeNow && (!telexShaped || EnglishLexicon.IsWord(rawWord)) &&
+                // After an explicit Telex shape, an English dictionary match
+                // must not override a valid Vietnamese syllable (been -> bên).
+                // Unknown/invalid Vietnamese shapes can still recover to English.
+                if (!shapeNow &&
+                    (!telexShaped ||
+                     (EnglishLexicon.IsWord(rawWord) && !LooksVietnamese(Text))) &&
                     EnglishLexicon.HasPrefix(rawWord)) {
                     englishCandidate=true;
                     telexShaped=false;
@@ -177,7 +180,10 @@ namespace TelexMini
         // Conservative syllable check + optional offline English recognition.
         public string Finish(bool restoreInvalid)
         {
-            if (SmartEnglish && !literalWord && (foreignWord || EnglishLexicon.IsWord(rawWord))) return rawWord;
+            if (SmartEnglish && !literalWord &&
+                (foreignWord ||
+                 (EnglishLexicon.IsWord(rawWord) &&
+                  !(telexShaped && LooksVietnamese(Text))))) return rawWord;
             if (englishCandidate) {
                 // A protected English prefix did not finish as a recognized word.
                 var replay=new TelexEngine();

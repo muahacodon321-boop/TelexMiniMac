@@ -79,6 +79,16 @@ are recovered once recognized. Intermediate rendering of ambiguous English
 words may temporarily show a Telex accent: this is unavoidable while also
 requiring immediate, speculative Vietnamese accents.
 
+### Vietnamese-first when an explicit Telex shape is valid
+
+In Vietnamese mode, the user explicitly typing a vowel-shaping sequence takes
+priority over an English dictionary match **when the resulting syllable is valid**.
+For example, `been → bên`, `bee → bê`, `teen → tên`, and `seen → sên`
+appear immediately and stay Vietnamese at word boundaries. English terms that
+cannot form valid Vietnamese syllables, such as `book` and `good`, are
+recovered as English. Fully ambiguous words (for example `boost → bốt`)
+will now favor Vietnamese; select English mode to type those literally.
+
 ### Smart Bilingual v2: algorithmic detection
 
 The typing path now uses three **offline** signals, not just a list of known English words:

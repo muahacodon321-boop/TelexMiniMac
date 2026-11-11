@@ -81,11 +81,22 @@ import Foundation
             if e.text==expected {passed+=1}
             else {failed+=1;print("FAIL instant Telex \(raw) => \(e.text), expected \(expected)")}
         }
-        for (raw,expected) in [("book","book"),("books","books"),("good","good"),("boost","boost")] {
+        for (raw,expected) in [("book","book"),("books","books"),("good","good"),("boost","bốt")] {
             let e=TelexComposer()
             for c in raw { _=e.push(c) }
             if e.text==expected && e.finish()==expected {passed+=1}
             else {failed+=1;print("FAIL English after immediate shape: \(raw) => \(e.text) / \(e.finish())")}
+        }
+        // Vietnamese mode wins when a complete Telex syllable conflicts
+        // with a dictionary English word (been -> bên).
+        for (raw,expected) in [
+            ("bee","bê"),("been","bên"),("beens","bến"),
+            ("teen","tên"),("seen","sên"),("boost","bốt")
+        ] {
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==expected && e.finish()==expected { passed+=1 }
+            else { failed+=1;print("FAIL Vietnamese priority: \(raw) => \(e.text) / \(e.finish()), expected \(expected)") }
         }
         let e=TelexComposer();for c in "tieengs" { _=e.push(c) }
         e.backspace();_=e.push("g")
