@@ -60,6 +60,12 @@ Build outputs: `build/TelexMini.app` and `build/TelexMini Settings.app` (ignored
 
 **macOS is a technical preview, not a commercial release.** Unit tests and builds pass, but first-time input-source activation and typing across apps still need end-to-end verification after logging out/in. The default ad-hoc signature is suitable only for local testing.
 
+## English typing reliability
+
+The offline lexicon includes common development terms such as `parameter`, `parameters`, `parameterized`, `parameterization`, `parallel` and `parser`. With Smart English enabled, it protects **each prefix as you type**, not only the completed word. Regression tests assert that `p`, `pa`, `par`, `para`, ... remain unchanged through `parameter` and verify Vietnamese Telex examples still work.
+
+Some strings are inherently ambiguous between English and Telex (for example `as` vs. Vietnamese `á`). You can disable Smart English or use `VietnameseOverrides.txt` to prefer Telex for selected sequences. The lexicon is not exhaustive.
+
 ## Privacy
 
 Input processing is intended to remain fully local and offline. There is no network-based AI, keylogging archive or cloud telemetry built into the typing path. User-added words and options are local and excluded from Git. Avoid entering real passwords into any demonstration app.

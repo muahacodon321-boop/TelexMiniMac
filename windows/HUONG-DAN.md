@@ -49,6 +49,12 @@ Danh sách terminal: Windows Terminal, Command Prompt, PowerShell/pwsh, conhost/
 
 Nhận diện mật khẩu chỉ đọc cờ `IsPassword` hoặc thuộc tính kiểu ô nhập Windows; không đọc ValuePattern, TextPattern, giá trị, nhãn hoặc nội dung mật khẩu. Worker chạy riêng, không gọi UI Automation từ callback bàn phím. Khi bật, nó nhận sự kiện đổi tiêu điểm và kiểm tra dự phòng mỗi 750 ms. Khi vừa đổi tiêu điểm hoặc chưa nhận diện được, bộ gõ tạm giữ E; thời gian cập nhật phụ thuộc ứng dụng. Gõ ngay trong khoảng chuyển tiếp có thể ra chữ không dấu. Khi tắt tự dùng terminal, worker vẫn chạy để nhận diện mật khẩu nếu chế độ V được chọn. Khi chọn E thủ công hoặc tạm dừng hoàn toàn, worker ngủ và huỷ đăng ký sự kiện UI Automation; truy vấn đã bắt đầu trước lúc tắt có thể cần thời gian để trả về.
 
+## Sửa lỗi gõ từ tiếng Anh như parameter
+
+Bộ từ điển offline có thêm các họ từ `parameter`, `parameters`, `parameterized`, `parameterization`, `parametric`, `params`, `parser`, `parallel` cùng các từ liên quan. Trong chế độ **Bảo vệ từ tiếng Anh**, `p`, `pa`, `par` ... `parameter` đều phải giữ nguyên ngay khi gõ, không đợi dấu cách cuối từ. Bản test có kiểm tra từng ký tự này.
+
+Trường hợp từ Anh hoàn toàn mới chưa có trong từ điển, có thể vào menu khay **Thêm từ tiếng Anh...** để bổ sung. Sau đó chọn **Nạp lại từ điển**. Lỗi trước đây nằm ở từ vắng mặt trong bộ từ điển gốc, không phải do tốc độ gõ.
+
 ## Nhận diện tiếng Anh thông minh (offline)
 
 Mặc định bật **Bảo vệ từ tiếng Anh (offline)**. Telex Mini có từ điển gốc khoảng 1.500 từ phổ biến và kỹ thuật. Bộ gõ giữ nguyên chuỗi phím khi nó còn là tiền tố của một từ Anh đã biết, nhờ vậy giảm hiện tượng chữ bị biến thành dấu Telex trong lúc gõ. Khi tiền tố không còn khớp tiếng Anh, bộ gõ phát lại chuỗi phím qua Telex để người dùng vẫn có thể gõ dấu ngay sau nguyên âm hoặc bất kỳ chỗ nào trong từ. Không sử dụng Internet, AI, hay gửi văn bản đi đâu.

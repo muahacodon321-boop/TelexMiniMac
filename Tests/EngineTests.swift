@@ -9,7 +9,9 @@ import Foundation
             ("tieesng","tiếng"), ("uow","ươ"), ("esscape","escape")
         ]
         let english=["as","office","assets","testing","framework","plugin",
-                     "password","dashboard","release","browser","github","script","hello"]
+                     "password","dashboard","release","browser","github","script","hello",
+                     "parameter","parameters","parameterized","parameterization",
+                     "parametric","parametrize","params","parentheses","parallel","parser"]
         var failed=0, passed=0
         for (raw,want) in vietnamese {
             let e=TelexComposer();e.smartEnglish=true;e.restoreInvalid=true
@@ -18,7 +20,15 @@ import Foundation
         }
         for raw in english {
             let e=TelexComposer();e.smartEnglish=true;e.restoreInvalid=true
-            for c in raw { _=e.push(c) }
+            var prefix=""
+            for c in raw {
+                prefix.append(c)
+                let actual=e.push(c)
+                if actual != prefix {
+                    failed+=1
+                    print("FAIL English in-progress: \(raw) at \(prefix) => \(actual)")
+                } else { passed+=1 }
+            }
             if e.text==raw && e.finish()==raw { passed+=1 }
             else { failed+=1; print("FAIL English: \(raw) => \(e.text) / \(e.finish())") }
         }

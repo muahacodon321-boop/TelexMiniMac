@@ -50,9 +50,14 @@ namespace TelexMini
             }
             var ambiguous=new TelexEngine(); foreach(char c in "as") ambiguous.Push(c);
             Equal("Ambiguous word retains Vietnamese","á",ambiguous.Finish(true));
-            foreach(string word in new[] { "as","office","testing","password","framework","plugin","dashboard","release","browser","github","script","assets","developer","windows","hello","english" }) {
+            foreach(string word in new[] { "as","office","testing","password","framework","plugin","dashboard","release","browser","github","script","assets","developer","windows","hello","english","parameter","parameters","parameterized","parameterization","parametric","parametrize","params","parentheses","parallel","parser" }) {
                 var bilingual=new TelexEngine { SmartEnglish=true };
-                foreach(char c in word) bilingual.Push(c);
+                string prefix="";
+                foreach(char c in word) {
+                    prefix+=c;
+                    bilingual.Push(c);
+                    Equal("Smart English prefix "+prefix,prefix,bilingual.Text);
+                }
                 Equal("Smart English while typing "+word,word,bilingual.Text);
                 Equal("Smart English boundary "+word,word,bilingual.Finish(true));
             }
