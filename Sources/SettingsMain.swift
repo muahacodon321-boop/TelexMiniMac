@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 private enum Palette {
     static let bg=Color(red:0.055,green:0.084,blue:0.14)
@@ -15,19 +16,77 @@ final class SettingsStore: ObservableObject {
     @Published var smartEnglish: Bool { didSet { defaults.set(smartEnglish,forKey:"smartEnglish") } }
     @Published var restoreInvalid: Bool { didSet { defaults.set(restoreInvalid,forKey:"restoreInvalid") } }
     @Published var darkMode: Bool { didSet { defaults.set(darkMode,forKey:"darkMode") } }
-    @Published var autoStart: Bool { didSet { defaults.set(autoStart,forKey:"autoStart") } }
+    @Published var autoStart: Bool { didSet {
+        if #available(macOS 13.0, *) {
+            do {
+                if autoStart {try SMAppService.mainApp.register()}
+                else {try SMAppService.mainApp.unregister()}
+            } catch {autoStartError=error.localizedDescription}
+        }
+    } }
+    @Published var autoStartError=""
+    @Published var inputMethod:String {didSet {defaults.set(inputMethod,forKey:"inputMethod")}}
+    @Published var hotkey:String {didSet {defaults.set(hotkey,forKey:"hotkey")}}
+    @Published var languagePriority:String {didSet {defaults.set(languagePriority,forKey:"languagePriority")}}
+    @Published var excludedApps:String {didSet {defaults.set(excludedApps,forKey:"excludedApps")}}
     private let defaults=UserDefaults(suiteName:"com.telexmini.mac") ?? .standard
     init() {
         smartEnglish=defaults.object(forKey:"smartEnglish") as? Bool ?? true
         restoreInvalid=defaults.object(forKey:"restoreInvalid") as? Bool ?? true
         darkMode=defaults.object(forKey:"darkMode") as? Bool ?? true
-        autoStart=defaults.object(forKey:"autoStart") as? Bool ?? false
+        if #available(macOS 13.0, *) { autoStart=SMAppService.mainApp.status == .enabled }
+        else { autoStart=false }
+        inputMethod=defaults.string(forKey:"inputMethod") ?? "Telex"
+        hotkey=defaults.string(forKey:"hotkey") ?? "Ctrl + Shift + Space"
+        languagePriority=defaults.string(forKey:"languagePriority") ?? "Balanced"
+        excludedApps=defaults.string(forKey:"excludedApps") ?? ""
     }
     static var directory: URL {
         let dir=FileManager.default.homeDirectoryForCurrentUser
            .appendingPathComponent("Library/Application Support/TelexMini",isDirectory:true)
         try? FileManager.default.createDirectory(at:dir,withIntermediateDirectories:true)
         return dir
+    }
+    func signalReload() {
+        let file=Self.directory.appendingPathComponent("dictionary-reload.flag")
+        try? Date().description.write(to:file,atomically:true,encoding:.utf8)
+    }
+    func transfer(_ incoming:Bool) {
+        let panel=NSOpenPanel()
+        panel.canChooseDirectories=true;panel.canChooseFiles=false
+        panel.allowsMultipleSelection=false
+        panel.prompt=incoming ? "Nhập" : "Xuất"
+        guard panel.runModal() == .OK,let folder=panel.url,
+              folder.standardizedFileURL != Self.directory.standardizedFileURL else {return}
+        for filename in ["EnglishWords.txt","VietnameseOverrides.txt"] {
+            let local=Self.directory.appendingPathComponent(filename)
+            let backup=folder.appendingPathComponent(filename)
+            let source=incoming ? backup : local
+            let target=incoming ? local : backup
+            if FileManager.default.fileExists(atPath:source.path) {
+                try? FileManager.default.removeItem(at:target)
+                try? FileManager.default.copyItem(at:source,to:target)
+            }
+        }
+        let pref=folder.appendingPathComponent("TelexMini-preferences.json")
+        if incoming {
+            if let data=try? Data(contentsOf:pref),
+               let json=try? JSONSerialization.jsonObject(with:data) as? [String:String] {
+                if let value=json["inputMethod"],["Telex","VNI"].contains(value) {inputMethod=value}
+                if let value=json["hotkey"] {hotkey=value}
+                if let value=json["languagePriority"],["Balanced","Vietnamese","English"].contains(value) {
+                    languagePriority=value
+                }
+                if let value=json["excludedApps"] {excludedApps=value}
+            }
+        } else {
+            let json=["inputMethod":inputMethod,"hotkey":hotkey,"excludedApps":excludedApps,
+                      "languagePriority":languagePriority]
+            if let data=try? JSONSerialization.data(withJSONObject:json,options:[.prettyPrinted]) {
+                try? data.write(to:pref,options:.atomic)
+            }
+        }
+        signalReload()
     }
     func edit(_ file:String) {
         let url=Self.directory.appendingPathComponent(file)
@@ -84,7 +143,9 @@ struct SettingsView:View {
     @StateObject private var prefs=SettingsStore()
     @State private var preview=""
     @State private var section="dashboard"
-    private var wordCount:String { "1.566+" }
+    @State private var editingFile:String?=nil
+    @State private var editingText=""
+    private var wordCount:String { "1.670+" }
     var body:some View {
         HStack(spacing:0) {
             sidebar
@@ -108,6 +169,46 @@ struct SettingsView:View {
                         .padding(.horizontal,20)
                         .background(Palette.card,in:RoundedRectangle(cornerRadius:18))
                     }
+                    VStack(alignment:.leading,spacing:12) {
+                        Text("CÀI ĐẶT NÂNG CAO").font(.system(size:11,weight:.bold))
+                            .tracking(2).foregroundStyle(Palette.muted)
+                        HStack {
+                            Text("Kiểu gõ")
+                            Spacer()
+                            Picker("Kiểu gõ",selection:$prefs.inputMethod) {
+                                Text("Telex").tag("Telex");Text("VNI").tag("VNI")
+                            }.labelsHidden().frame(width:145)
+                        }
+                        HStack {
+                            Text("Ưu tiên ngôn ngữ")
+                            Spacer()
+                            Picker("Ưu tiên",selection:$prefs.languagePriority) {
+                                Text("Cân bằng").tag("Balanced")
+                                Text("Tiếng Việt").tag("Vietnamese")
+                                Text("Tiếng Anh").tag("English")
+                            }.labelsHidden().frame(width:165)
+                        }
+                        HStack {
+                            Text("Phím chuyển V/E")
+                            Spacer()
+                            Picker("Phím tắt",selection:$prefs.hotkey) {
+                                Text("Ctrl + Shift + Space").tag("Ctrl + Shift + Space")
+                                Text("Ctrl + Option + V").tag("Ctrl + Option + V")
+                            }.labelsHidden().frame(width:235)
+                        }
+                        Toggle("Tự khởi động cùng macOS",isOn:$prefs.autoStart).tint(Palette.mint)
+                        if !prefs.autoStartError.isEmpty {
+                            Text(prefs.autoStartError).foregroundStyle(.orange).font(.caption)
+                        }
+                        Text("Ứng dụng bỏ qua (bundle ID, phân tách bằng dấu phẩy)")
+                            .font(.system(size:11)).foregroundStyle(Palette.muted)
+                        TextField("com.apple.Terminal, com.microsoft.VSCode",text:$prefs.excludedApps)
+                            .textFieldStyle(.roundedBorder)
+                        HStack {
+                            Button("Xuất cấu hình") {prefs.transfer(false)}
+                            Button("Nhập cấu hình") {prefs.transfer(true)}
+                        }.buttonStyle(.bordered)
+                    }.padding(18).background(Palette.card,in:RoundedRectangle(cornerRadius:18))
                     VStack(alignment:.leading,spacing:9) {
                         Label("THỬ GÕ NGAY",systemImage:"keyboard")
                             .font(.system(size:11,weight:.bold)).tracking(1.2)
@@ -132,6 +233,36 @@ struct SettingsView:View {
         }
         .frame(minWidth:930,minHeight:640)
         .preferredColorScheme(.dark)
+        .sheet(isPresented:Binding(get:{editingFile != nil},set:{if !$0 {editingFile=nil}})) {
+            let file=editingFile ?? "EnglishWords.txt"
+            VStack(alignment:.leading,spacing:12) {
+                Text(file=="EnglishWords.txt" ? "Từ điển tiếng Anh" : "Ưu tiên Telex")
+                    .font(.title2.bold())
+                Text("Mỗi dòng một từ gồm a-z. Không ghi nhận nội dung đang gõ.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextEditor(text:$editingText).font(.system(.body,design:.monospaced))
+                    .frame(minHeight:340)
+                HStack {
+                    Button("Hủy") {editingFile=nil}
+                    Spacer()
+                    Button("Lưu") {
+                        let url=SettingsStore.directory.appendingPathComponent(file)
+                        let cleaned=editingText.split(whereSeparator: \.isNewline)
+                            .map {String($0).trimmingCharacters(in:.whitespaces).lowercased()}
+                            .filter {!$0.isEmpty && $0.count<=64 &&
+                                     $0.utf8.allSatisfy({$0>=97 && $0<=122})}
+                        try? (cleaned.joined(separator:"\n")+"\n").write(to:url,
+                            atomically:true,encoding:.utf8)
+                        prefs.signalReload();editingFile=nil
+                    }.keyboardShortcut(.defaultAction)
+                }
+            }.padding(24).frame(width:530)
+        }
+    }
+    private func openEditor(_ file:String) {
+        editingText=(try? String(contentsOf:SettingsStore.directory.appendingPathComponent(file),
+                                 encoding:.utf8)) ?? ""
+        editingFile=file
     }
     private var sidebar:some View {
         VStack(alignment:.leading,spacing:20) {
@@ -153,12 +284,11 @@ struct SettingsView:View {
                 .tracking(1.4).foregroundStyle(Palette.muted)
             VStack(spacing:5) {
                 SidebarButton(icon:"square.grid.2x2.fill",label:"Tổng quan",action:{ section="dashboard" },selected:true)
-                SidebarButton(icon:"text.badge.plus",label:"Từ điển tiếng Anh",action:{ prefs.edit("EnglishWords.txt") })
-                SidebarButton(icon:"character.book.closed",label:"Ưu tiên Telex",action:{ prefs.edit("VietnameseOverrides.txt") })
+                SidebarButton(icon:"text.badge.plus",label:"Từ điển tiếng Anh",action:{ openEditor("EnglishWords.txt") })
+                SidebarButton(icon:"character.book.closed",label:"Ưu tiên Telex",action:{ openEditor("VietnameseOverrides.txt") })
                 SidebarButton(icon:"arrow.clockwise",label:"Nạp lại từ điển",action:{
                     // Input-source process loads preferences/dictionary on its next activation.
-                    let path=SettingsStore.directory.appendingPathComponent("dictionary-reload.flag")
-                    try? Date().description.write(to:path,atomically:true,encoding:.utf8)
+                    prefs.signalReload()
                 })
             }
             Spacer()

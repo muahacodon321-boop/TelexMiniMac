@@ -15,6 +15,8 @@ namespace TelexMini
         public string Text { get; private set; }
         // Off by default for engine-only use; enabled in the keyboard application.
         public bool SmartEnglish { get; set; }
+        public bool UseVni { get; set; }
+        public bool PreferEnglishExact { get; set; }
         bool literalWord, englishCandidate, foreignWord, telexShaped, lastTelexKey;
         string rawWord="", pendingEscapeRaw=null;
         public TelexEngine() { Reset(); }
@@ -175,8 +177,8 @@ namespace TelexMini
             string prior=Text;
             rawWord+=key;
             lastTelexKey=false;
-            bool shapeNow=ImmediateShapeKey(rawWord);
-            if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
+            bool shapeNow=!UseVni && ImmediateShapeKey(rawWord);
+            if (SmartEnglish && !UseVni && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
                 if (foreignWord || HasForeignStart(rawWord)) {
                     foreignWord=true;
                     englishCandidate=false;
@@ -188,7 +190,8 @@ namespace TelexMini
                 // Unknown/invalid Vietnamese shapes can still recover to English.
                 if (!shapeNow &&
                     (!telexShaped ||
-                     (EnglishLexicon.IsWord(rawWord) && !LooksVietnamese(Text))) &&
+                     (EnglishLexicon.IsWord(rawWord) &&
+                      (PreferEnglishExact || !LooksVietnamese(Text)))) &&
                     EnglishLexicon.HasPrefix(rawWord)) {
                     englishCandidate=true;
                     telexShaped=false;
@@ -206,7 +209,7 @@ namespace TelexMini
             // If a transformed token cannot be a Vietnamese syllable any more,
             // undo the speculative accent immediately and keep subsequent keys
             // literal. No dictionary lookup or network request is required.
-            if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord) &&
+            if (SmartEnglish && !UseVni && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord) &&
                 rawWord!=Text && ImpossibleVietnamese(Text)) {
                 foreignWord=true;
                 telexShaped=false;
@@ -219,13 +222,13 @@ namespace TelexMini
         {
             if(pendingEscapeRaw!=null && SmartEnglish && EnglishLexicon.IsWord(pendingEscapeRaw))
                 return pendingEscapeRaw;
-            if (SmartEnglish && !literalWord &&
+            if (SmartEnglish && !UseVni && !literalWord &&
                 (foreignWord ||
                  (EnglishLexicon.IsWord(rawWord) &&
-                  !(telexShaped && LooksVietnamese(Text))))) return rawWord;
+                  !(telexShaped && LooksVietnamese(Text) && !PreferEnglishExact)))) return rawWord;
             if (englishCandidate) {
                 // A protected English prefix did not finish as a recognized word.
-                var replay=new TelexEngine();
+                var replay=new TelexEngine { UseVni=UseVni,PreferEnglishExact=PreferEnglishExact };
                 foreach(char c in rawWord) replay.Push(c);
                 return replay.Finish(restoreInvalid);
             }
@@ -257,6 +260,39 @@ namespace TelexMini
             // A long token is probably a URL/identifier: pass through without deleting its prefix.
             if (Text.Length >= 64) literalWord=true;
             if (literalWord) return Text += key;
+            if (UseVni && k>='1' && k<='9' && !ImpossibleVietnamese(Text)) {
+                if(k=='9') {
+                    char[] letters=Text.ToCharArray();
+                    for(int i=0;i<letters.Length;i++) if(char.ToLowerInvariant(letters[i])=='d') {
+                        letters[i]=Case('đ',letters[i]); return Text=new string(letters);
+                    }
+                    return Text=Text+key;
+                }
+                if("12345".IndexOf(k)>=0 && Vowels(Text).Count>0)
+                    return Text=SetTone(Text,"12345".IndexOf(k)+1);
+                if(k=='6' || k=='7' || k=='8') {
+                    char[] letters=Text.ToCharArray();
+                    List<int> v=Vowels(Text);
+                    if(k=='7' && v.Count>=2) {
+                        int i=v[v.Count-2], j=v[v.Count-1];
+                        if(j==i+1 && "uư".IndexOf(Base(letters[i]))>=0 && "oôơ".IndexOf(Base(letters[j]))>=0) {
+                            letters[i]=Shape(letters[i],'ư');letters[j]=Shape(letters[j],'ơ');
+                            return Text=Normalize(new string(letters));
+                        }
+                    }
+                    for(int n=v.Count-1;n>=0;n--) {
+                        int i=v[n]; char b=Base(letters[i]);
+                        if(k=='6' && (b=='a'||b=='e'||b=='o'))
+                            {letters[i]=Shape(letters[i],b=='a'?'â':b=='e'?'ê':'ô');return Text=Normalize(new string(letters));}
+                        if(k=='7' && (b=='u'||b=='o'))
+                            {letters[i]=Shape(letters[i],b=='u'?'ư':'ơ');return Text=Normalize(new string(letters));}
+                        if(k=='8' && b=='a')
+                            {letters[i]=Shape(letters[i],'ă');return Text=Normalize(new string(letters));}
+                    }
+                    return Text=Text+key;
+                }
+            }
+            if (UseVni) return Text=Normalize(Text+key);
             int tone = "zsfrxj".IndexOf(k); // z=0,s=1,f=2,r=3,x=4,j=5
             if (tone >= 0 && Vowels(Text).Count > 0)
             {

@@ -20,6 +20,8 @@ final class TelexComposer {
     private var lastTelexKey = false
     private var pendingEscapeRaw:String? = nil
     var smartEnglish = true
+    var useVni = false
+    var preferEnglishExact = false
     var restoreInvalid = true
     private(set) static var english = Set<String>()
     private(set) static var prefixes = Set<String>()
@@ -136,6 +138,48 @@ final class TelexComposer {
         if text.count >= 64 { literal=true }
         if literal { text.append(key); return }
         let a=Array(text)
+        if useVni {
+            guard let digit=k.wholeNumberValue, digit>=1, digit<=9,
+                !Self.impossibleVietnamese(text) else {
+                text=Self.normalize(text+String(key)); return
+            }
+            if digit>=1 && digit<=5 && !Self.vowels(a).isEmpty {
+                text=Self.setTone(text,digit); return
+            }
+            if digit==9 {
+                if let i=a.firstIndex(where:{Self.root($0)=="d"}) {
+                    var b=a;b[i]=String(a[i]).uppercased()==String(a[i]) ? "Đ" : "đ"
+                    text=String(b);return
+                }
+            }
+            if digit>=6 && digit<=8 {
+                let v=Self.vowels(a)
+                if digit==7 && v.count>=2 {
+                    let i=v[v.count-2],j=v[v.count-1]
+                    if j==i+1 && "uư".contains(Self.root(a[i])) &&
+                        "oôơ".contains(Self.root(a[j])) {
+                        var b=a
+                        b[i]=Self.alter(a[i],shape:"ư")
+                        b[j]=Self.alter(a[j],shape:"ơ")
+                        text=Self.normalize(String(b));return
+                    }
+                }
+                for i in v.reversed() {
+                    let root=Self.root(a[i])
+                    let shape:Character?
+                    if digit==6 {
+                        shape=root=="a" ? "â" : root=="e" ? "ê" : root=="o" ? "ô" : nil
+                    } else if digit==7 {
+                        shape=root=="u" ? "ư" : root=="o" ? "ơ" : nil
+                    } else {shape=root=="a" ? "ă" : nil}
+                    if let shape=shape {
+                        var b=a;b[i]=Self.alter(a[i],shape:shape)
+                        text=Self.normalize(String(b));return
+                    }
+                }
+            }
+            text.append(key);return
+        }
         if let t=Self.tones.firstIndex(of:k), !Self.vowels(a).isEmpty {
             let current=a.map(Self.tone).last(where: { $0 > 0 }) ?? 0
             if t == 0 {
@@ -271,8 +315,8 @@ final class TelexComposer {
         let prior=text
         raw.append(key)
         lastTelexKey=false
-        let shapeNow=Self.immediateShapeKey(raw)
-        if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) {
+        let shapeNow = !useVni && Self.immediateShapeKey(raw)
+        if smartEnglish && !useVni && !literal && !Self.preferVietnamesePrefix(raw) {
             if foreignWord || Self.foreignStart(raw) {
                 foreignWord=true
                 englishCandidate=false
@@ -284,7 +328,8 @@ final class TelexComposer {
             // enters a Telex shaping key, even if English has the same spelling.
             if !shapeNow &&
                (!telexShaped ||
-                (Self.english.contains(raw.lowercased()) && !Self.looksVietnamese(text))) &&
+                (Self.english.contains(raw.lowercased()) &&
+                 (preferEnglishExact || !Self.looksVietnamese(text)))) &&
                Self.isEnglishPrefix(raw) {
                 englishCandidate=true
                 telexShaped=false
@@ -300,7 +345,7 @@ final class TelexComposer {
         } else {core(key)}
         lastTelexKey=(text != prior+String(key)) && !literal
         if shapeNow && raw != text {telexShaped=true}
-        if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) &&
+        if smartEnglish && !useVni && !literal && !Self.preferVietnamesePrefix(raw) &&
            raw != text && Self.impossibleVietnamese(text) {
             foreignWord=true
             telexShaped=false
@@ -313,13 +358,14 @@ final class TelexComposer {
             Self.english.contains(pending.lowercased()),!Self.vietnamese.contains(pending.lowercased()) {
             return pending
         }
-        if smartEnglish && !literal &&
+        if smartEnglish && !useVni && !literal &&
             (foreignWord || (Self.english.contains(raw.lowercased()) &&
-                             !(telexShaped && Self.looksVietnamese(text)))) &&
+                             !(telexShaped && Self.looksVietnamese(text) && !preferEnglishExact))) &&
             !Self.vietnamese.contains(raw.lowercased()) { return raw }
         if englishCandidate {
             let replay=TelexComposer()
-            replay.smartEnglish=false; replay.restoreInvalid=restoreInvalid
+            replay.smartEnglish=false; replay.useVni=useVni
+            replay.preferEnglishExact=preferEnglishExact; replay.restoreInvalid=restoreInvalid
             for c in raw { _ = replay.push(c) }
             return replay.finish()
         }

@@ -12,6 +12,18 @@ Bộ gõ Telex nhỏ cho Windows, viết bằng C# / Windows Forms. Chạy trự
 
 Cửa sổ nút chuyển luôn nổi và không lấy tiêu điểm khi bấm, để bạn tiếp tục gõ ở ứng dụng đang dùng. Nếu phím tắt đã bị ứng dụng khác chiếm, giao diện sẽ báo và các nút chuyển vẫn dùng được.
 
+## Cài đặt nâng cao (TelexMini v3)
+
+Chọn **Cài đặt nâng cao** tại sidebar hoặc menu biểu tượng khay để chỉnh:
+- **Telex/VNI**: mặc định là Telex; VNI dùng số 1–5 cho dấu thanh, 6 cho â/ê/ô, 7 cho ư/ơ, 8 cho ă, 9 cho đ.
+- **Ưu tiên ngôn ngữ**: Cân bằng (mặc định, kết quả Telex hợp lệ ưu tiên), tiếng Việt (giảm bảo vệ English), hoặc tiếng Anh (giữ từ Anh có trong từ điển khi mơ hồ).
+- **Phím chuyển V/E**: Ctrl+Shift+Space, Ctrl+Alt+V hoặc Alt+Shift+V (có thể xung đột với phần mềm khác).
+- **Tự khởi động cùng Windows**: lưu ở HKCU Run, không yêu cầu quản trị.
+- **Ứng dụng bỏ qua**: nhập tên tiến trình như `code.exe, chrome.exe`, không dùng đường dẫn hay ký tự đại diện. Khi ứng dụng bỏ qua ở foreground, TelexMini nhường phím.
+- **Nhập/Xuất**: sao lưu/khôi phục `preferences.ini`, `EnglishWords.txt` và `VietnameseOverrides.txt` vào thư mục riêng, không chạm dữ liệu gõ.
+
+Lưu ý: danh sách ứng dụng được so khớp chính xác, không phải tìm chuỗi con. Không lưu mật khẩu hoặc lịch sử bàn phím. VNI sẽ không áp dụng dấu khi tiền tố rõ ràng không phải âm tiết tiếng Việt, chẳng hạn `abc123`.
+
 ## Telex
 
 | Gõ | Kết quả |

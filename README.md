@@ -122,6 +122,12 @@ The typing path now uses three **offline** signals, not just a list of known Eng
 
 Input processing is intended to remain fully local and offline. There is no network-based AI, keylogging archive or cloud telemetry built into the typing path. User-added words and options are local and excluded from Git. Avoid entering real passwords into any demonstration app.
 
+## Typing Engine v3 and advanced settings
+
+Both platforms support Telex (default) and optional VNI (1-5 tone, 6/7/8 vowel shapes, 9 for đ). Select the input method and language priority (Balanced by default, Vietnamese-first or English-first) in advanced preferences. Windows exposes an in-app advanced settings window with configurable V/E shortcut presets, auto-start, exact process exclusion list, and local import/export. macOS offers SwiftUI controls for Telex/VNI, source-local V/E shortcuts, exact bundle ID exclusions, login-item startup and dictionary editing in-app. The macOS login item starts the Settings app; enabling the IMK input source is a separate system choice.
+
+Regression coverage now includes 3,000 deterministic random compositions per platform, VNI numeric identifiers, Telex immediate accents, repeated escape keys and Backspace. **This does not establish application-level compatibility.** See [QA-RESULTS.md](QA-RESULTS.md) for tested behavior and outstanding Windows-focus / macOS-input-registration blockers.
+
 ## Roadmap and release
 
 See [windows/COMMERCIAL-ROADMAP.md](windows/COMMERCIAL-ROADMAP.md) for hardening and commercial-release gates. Separate app signing, notarization, end-to-end IME tests, updates, support and licensing are **not** shipped here.

@@ -119,6 +119,28 @@ namespace TelexMini
                 Equal("Repeated Telex escape "+pair[0],pair[1],bilingual.Text);
                 Equal("Repeated Telex escape boundary "+pair[0],pair[1],bilingual.Finish(true));
             }
+            var englishFirst=new TelexEngine {SmartEnglish=true,PreferEnglishExact=true};
+            foreach(char c in "been") englishFirst.Push(c);
+            Equal("English-first explicit collision","been",englishFirst.Text);
+            Equal("English-first boundary","been",englishFirst.Finish(true));
+            var vietnameseOnly=new TelexEngine {SmartEnglish=false};
+            foreach(char c in "been") vietnameseOnly.Push(c);
+            Equal("Vietnamese-first explicit collision","bên",vietnameseOnly.Text);
+            // VNI uses numbered tone/shape keys while ordinary Telex stays the default.
+            foreach(var pair in new[] {
+                new[]{"bo6n1","bốn"},new[]{"tie6ng1","tiếng"},
+                new[]{"da9ng8","đăng"},new[]{"ma1","má"},
+                new[]{"mo7","mơ"},new[]{"mu7","mư"},
+                new[]{"uo7","ươ"},new[]{"abc123","abc123"}
+            }) {
+                var e=new TelexEngine {UseVni=true,SmartEnglish=true};
+                foreach(char c in pair[0]) e.Push(c);
+                Equal("VNI "+pair[0],pair[1],e.Text);
+                Equal("VNI boundary "+pair[0],pair[1],e.Finish(true));
+            }
+            Equal("Excluded app initial false","False",ContextPolicy.IsUserExcluded("nonexistent_example.exe").ToString());
+            Equal("Excluded process exact match","True",ContextPolicy.MatchesExcluded("code.exe","chrome, code, notepad").ToString());
+            Equal("Excluded process does not match substring","False",ContextPolicy.MatchesExcluded("mycode.exe","chrome, code").ToString());
             // Algorithmic recovery of unfamiliar English words, not dictionary matches.
             foreach(string word in new[] {
                 "paradoxical","paramagnets","privatization","fluctuation",
@@ -141,6 +163,26 @@ namespace TelexMini
             Equal("Password always English", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Password).ToString());
             Equal("Unknown field fail closed", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Checking).ToString());
             Equal("Unavailable field fail closed", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Unavailable).ToString());
+            uint seed=0x47A2B199;
+            foreach(bool vni in new[]{false,true}) {
+                string alphabet=vni ? "abcdefghijklmnopqrstuvxyz123456789" :
+                                      "abcdefghijklmnopqrstuvxyz";
+                for(int iteration=0;iteration<1500;iteration++) {
+                    var e=new TelexEngine {SmartEnglish=true,UseVni=vni};
+                    int written=0;
+                    bool valid=true;
+                    for(int j=0;j<24;j++) {
+                        unchecked {seed=seed*1664525u+1013904223u;}
+                        char c=alphabet[(int)(seed%(uint)alphabet.Length)];
+                        e.Push(c);written++;
+                        if(e.Text.Length>written) valid=false;
+                        if((seed&31)==0) {e.Backspace();written=e.Text.Length;}
+                    }
+                    if(e.Finish(true).Length>written) valid=false;
+                    if(!valid) {failures++;Console.WriteLine("FAIL randomized composition invariant");}
+                }
+            }
+            Console.WriteLine("Deterministic stress: 3000 compositions.");
             Console.WriteLine("Bundled English vocabulary: "+EnglishLexicon.WordCount);
             var longWord=new TelexEngine(); string longInput=new string('b',70)+"esscape";
             foreach(char c in longInput) longWord.Push(c);
@@ -289,10 +331,18 @@ namespace TelexMini
             readonly string[] expected={"tiếng việt", "trường người", "as aa dd", "toán", "tiếng", "as", "á", "escape tiếng việt", "escape", "escape.á", "escape tiếng ", "hello.browser ", "github"};
             int test,position,delay=8;
             internal IntegrationForm() {
-                Text="Telex Mini — automated input test"; Controls.Add(box);
+                Text="Telex Mini — automated input test";
+                StartPosition=FormStartPosition.CenterScreen;
+                TopMost=true;
+                Controls.Add(box);
                 var start=new Button { Text="Start input test", Dock=DockStyle.Top, Height=40 };
                 Controls.Add(start);
                 start.Click+=delegate { start.Enabled=false; box.Focus(); LoadKeyboardLayout("00000409",1); timer.Start(); };
+                if(Environment.GetEnvironmentVariable("TELEX_AUTO_INTEGRATION")=="1")
+                    Shown+=delegate {
+                        TopMost=true;Activate();BringToFront();
+                        start.PerformClick();
+                    };
                 timer.Tick+=Tick;
             }
             void Tick(object sender,EventArgs e) {

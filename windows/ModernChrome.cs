@@ -59,7 +59,8 @@ namespace TelexMini
         Color page,card,muted,ink,outline;
 
         internal ModernChrome(Form owner,Button toggle,Label statusLabel,CheckBox auto,CheckBox restore,CheckBox smart,
-                              Button hide,Button exit,Action openEnglish,Action openVietnamese,Action reload)
+                              Button hide,Button exit,Action openEnglish,Action openVietnamese,Action reload,
+                              Action advanced=null)
         {
             form=owner; modeButton=toggle; status=statusLabel;
             hideButton=hide; exitButton=exit;
@@ -113,6 +114,9 @@ namespace TelexMini
             navVietnamese.Click+=delegate { openVietnamese(); };
             var navReload=SideButton("↻  Nạp lại từ điển",new Point(15,297)); sidebar.Controls.Add(navReload);
             navReload.Click+=delegate { reload(); };
+            var advancedButton=SideButton("⚙  Cài đặt nâng cao",new Point(15,353));
+            sidebar.Controls.Add(advancedButton);
+            advancedButton.Click+=delegate {if(advanced!=null) advanced();};
             sidebar.Controls.Add(Label("PRIVATE BY DESIGN",new Rectangle(23,473,174,19),Color.FromArgb(123,151,177),8f,true));
             sidebar.Controls.Add(Label("Không lưu nội dung gõ\nKhông gửi dữ liệu lên mạng",new Rectangle(23,500,174,47),
                 Color.FromArgb(165,184,199),8.6f,false));
@@ -207,6 +211,10 @@ namespace TelexMini
             b.TextAlign=ContentAlignment.MiddleLeft;
             b.Padding=new Padding(12,0,0,0);
             return b;
+        }
+        internal void ReloadTheme() {
+            dark=UserPreferences.Bool("DarkTheme",true);
+            ApplyTheme();
         }
         void ApplyTheme()
         {

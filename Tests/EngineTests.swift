@@ -118,9 +118,50 @@ import Foundation
             if e.text==want && e.finish()==want {passed+=1}
             else {failed+=1;print("FAIL Telex repeat escape \(raw) => \(e.text) / \(e.finish()), expected \(want)")}
         }
+        do {
+            let en=TelexComposer();en.preferEnglishExact=true
+            for c in "been" {_ = en.push(c)}
+            if en.text=="been" && en.finish()=="been" {passed+=1}
+            else {failed+=1;print("FAIL English-first collision")}
+            let vi=TelexComposer();vi.smartEnglish=false
+            for c in "been" {_ = vi.push(c)}
+            if vi.text=="bên" {passed+=1}
+            else {failed+=1;print("FAIL Vietnamese-first collision")}
+        }
+        let vni:[(String,String)]=[
+            ("bo6n1","bốn"),("tie6ng1","tiếng"),("da9ng8","đăng"),
+            ("ma1","má"),("mo7","mơ"),("mu7","mư"),("uo7","ươ"),
+            ("abc123","abc123")
+        ]
+        for (raw,want) in vni {
+            let e=TelexComposer();e.useVni=true
+            for c in raw { _=e.push(c) }
+            if e.text==want && e.finish()==want {passed+=1}
+            else {failed+=1; print("FAIL VNI \(raw) => \(e.text) / \(e.finish()), wanted \(want)")}
+        }
         let e=TelexComposer();for c in "tieengs" { _=e.push(c) }
         e.backspace();_=e.push("g")
         if e.text=="tiếng" {passed+=1} else {failed+=1;print("FAIL backspace: \(e.text)")}
+        // Deterministic stress: random words, editing and mode switches.
+        // Keep only in-memory buffers; never record the user's text.
+        var seed:UInt32=0x47A2B199
+        for useVni in [false,true] {
+            for _ in 0..<1500 {
+                let e=TelexComposer();e.useVni=useVni
+                let alphabet=Array(useVni ? "abcdefghijklmnopqrstuvxyz123456789" :
+                                            "abcdefghijklmnopqrstuvxyz")
+                var valid=true
+                for _ in 0..<24 {
+                    seed=seed &* 1664525 &+ 1013904223
+                    let key=alphabet[Int(seed % UInt32(alphabet.count))]
+                    _=e.push(key)
+                    if e.text.count>e.raw.count {valid=false}
+                    if seed & 31==0 {e.backspace()}
+                }
+                if e.finish().count>e.raw.count {valid=false}
+                if valid {passed+=1} else {failed+=1;print("FAIL randomized composition invariant")}
+            }
+        }
         print("Passed \(passed), failed \(failed), vocabulary \(TelexComposer.english.count)")
         if failed != 0 { exit(1) }
     }

@@ -24,6 +24,7 @@ namespace TelexMini
             hook=SetWinEventHook(3,3,IntPtr.Zero,callback,0,0,0); // EVENT_SYSTEM_FOREGROUND
             Check();
         }
+        internal void RefreshPolicy() {lastWindow=IntPtr.Zero;lastProcess=0;Check();}
         internal void Check() {
             IntPtr window=Native.GetForegroundWindow();
             if(window==lastWindow) return;
@@ -46,7 +47,25 @@ namespace TelexMini
             if(name.EndsWith(".exe")) name=name.Substring(0,name.Length-4);
             return name=="streaming_client";
         }
-        internal static bool ShouldYieldKeys(string name) { return IsGame(name) || IsSteamRemote(name); }
+        internal static bool ShouldYieldKeys(string name) {
+            return IsGame(name) || IsSteamRemote(name) || IsUserExcluded(name);
+        }
+        internal static bool IsUserExcluded(string name) {
+            name=(name ?? "").Trim().ToLowerInvariant();
+            if(name.EndsWith(".exe")) name=name.Substring(0,name.Length-4);
+            if(name.Length==0) return false;
+            return MatchesExcluded(name,UserPreferences.String("ExcludedApps",""));
+        }
+        internal static bool MatchesExcluded(string name,string list) {
+            name=(name ?? "").Trim().ToLowerInvariant();
+            if(name.EndsWith(".exe")) name=name.Substring(0,name.Length-4);
+            foreach(string entry in (list ?? "").Split(new[]{','},StringSplitOptions.RemoveEmptyEntries)) {
+                string item=entry.Trim().ToLowerInvariant();
+                if(item.EndsWith(".exe")) item=item.Substring(0,item.Length-4);
+                if(item==name) return true;
+            }
+            return false;
+        }
         internal static bool IsGame(string name) {
             name=(name ?? "").ToLowerInvariant();
             if(name.EndsWith(".exe")) name=name.Substring(0,name.Length-4);

@@ -50,10 +50,17 @@ namespace TelexMini
             keyboard=new Keyboard(context);
             keyboard.AutoEnglish=autoEnglish.Checked;
             keyboard.RestoreInvalid=restoreWords.Checked;
-            keyboard.SmartEnglish=smartEnglish.Checked;
+            keyboard.SmartEnglish=smartEnglish.Checked &&
+                UserPreferences.String("LanguagePriority","Balanced")!="Vietnamese";
+            keyboard.PreferEnglishExact=UserPreferences.String("LanguagePriority","Balanced")=="English";
+            keyboard.UseVni=UserPreferences.String("InputMethod","Telex")=="VNI";
             autoEnglish.CheckedChanged+=delegate { keyboard.AutoEnglish=autoEnglish.Checked; UserPreferences.Set("AutoEnglish",autoEnglish.Checked); keyboard.Enabled=keyboard.Enabled; SyncPerformance(); UpdateMode(); };
             restoreWords.CheckedChanged+=delegate { keyboard.RestoreInvalid=restoreWords.Checked; UserPreferences.Set("RestoreInvalid",restoreWords.Checked); };
-            smartEnglish.CheckedChanged+=delegate { keyboard.SmartEnglish=smartEnglish.Checked; UserPreferences.Set("SmartEnglish",smartEnglish.Checked); UpdateMode(); };
+            smartEnglish.CheckedChanged+=delegate {
+                keyboard.SmartEnglish=smartEnglish.Checked &&
+                    UserPreferences.String("LanguagePriority","Balanced")!="Vietnamese";
+                UserPreferences.Set("SmartEnglish",smartEnglish.Checked); UpdateMode();
+            };
             var menu=new ContextMenuStrip();
             switchItem=new ToolStripMenuItem("",null,delegate { Toggle(); }); menu.Items.Add(switchItem);
             pauseItem=new ToolStripMenuItem("Tạm dừng hoàn toàn: game / remote") { CheckOnClick=true };
@@ -63,6 +70,7 @@ namespace TelexMini
             menu.Items.Add("Quản lý từ tiếng Anh...",null,delegate { EditDictionary(false); });
             menu.Items.Add("Ưu tiên Telex cho từ...",null,delegate { EditDictionary(true); });
             menu.Items.Add("Nạp lại từ điển",null,delegate { EnglishLexicon.Reload(); keyboard.SmartEnglish=keyboard.SmartEnglish; UpdateMode(); });
+            menu.Items.Add("Cài đặt nâng cao...",null,delegate { OpenAdvanced(); });
             menu.Items.Add("Hiện nút chuyển",null,delegate { Show(); WindowState=FormWindowState.Normal; });
             menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Thoát",null,delegate { Close(); });
             tray=new NotifyIcon { Icon=vietIcon, Text="Telex Mini — Tiếng Việt", ContextMenuStrip=menu, Visible=true };
@@ -70,16 +78,43 @@ namespace TelexMini
             toggle.Click+=delegate { Toggle(); }; hide.Click+=delegate { Hide(); }; exit.Click+=delegate { Close(); };
             Resize+=delegate { if(WindowState==FormWindowState.Minimized) Hide(); };
             keyboard.InjectionFailed+=delegate { BeginInvoke((Action)delegate { tray.ShowBalloonTip(3500,"Không thay được ký tự","Ứng dụng đích có thể đang chạy quyền quản trị. Xem HUONG-DAN.md.",ToolTipIcon.Info); }); };
-            registered=Native.RegisterHotKey(Handle,1,0x4006,0x20);
+            RegisterShortcut();
             modeTimer=new System.Windows.Forms.Timer { Interval=500 };
             gameGuard=new GameGuard(delegate(bool active) { gameActive=active; SyncPerformance(); UpdateMode(); });
             modeTimer.Tick+=delegate { gameGuard.Check(); UpdateMode(); }; modeTimer.Start();
             chrome=new ModernChrome(this,toggle,status,autoEnglish,restoreWords,smartEnglish,hide,exit,
                 delegate { EditDictionary(false); },
                 delegate { EditDictionary(true); },
-                delegate { EnglishLexicon.Reload(); keyboard.SmartEnglish=keyboard.SmartEnglish; });
+                delegate { EnglishLexicon.Reload(); keyboard.SmartEnglish=keyboard.SmartEnglish; },
+                delegate { OpenAdvanced(); });
             SyncPerformance();
             UpdateMode();
+        }
+        void RegisterShortcut() {
+            if(registered) Native.UnregisterHotKey(Handle,1);
+            string chosen=UserPreferences.String("Hotkey","Ctrl + Shift + Space");
+            uint modifiers=0x4006;uint key=0x20;
+            if(chosen=="Ctrl + Alt + V") { modifiers=0x4003;key=0x56; }
+            else if(chosen=="Alt + Shift + V") { modifiers=0x4005;key=0x56; }
+            registered=Native.RegisterHotKey(Handle,1,modifiers,key);
+        }
+        void OpenAdvanced() {
+            keyboard.Suspended=true;
+            try {
+                if(AdvancedSettings.Open(this)) {
+                    autoEnglish.Checked=UserPreferences.Bool("AutoEnglish",autoEnglish.Checked);
+                    restoreWords.Checked=UserPreferences.Bool("RestoreInvalid",restoreWords.Checked);
+                    smartEnglish.Checked=UserPreferences.Bool("SmartEnglish",smartEnglish.Checked);
+                    if(chrome!=null) chrome.ReloadTheme();
+                    keyboard.UseVni=UserPreferences.String("InputMethod","Telex")=="VNI";
+                    string language=UserPreferences.String("LanguagePriority","Balanced");
+                    keyboard.SmartEnglish=smartEnglish.Checked && language!="Vietnamese";
+                    keyboard.PreferEnglishExact=language=="English";
+                    RegisterShortcut();
+                    gameGuard.RefreshPolicy();
+                    context.RequestCheck();
+                }
+            } finally {SyncPerformance();UpdateMode();}
         }
         static Icon MakeIcon(string letter, Color color)
         {
@@ -125,7 +160,7 @@ namespace TelexMini
             bool automatic=!pause && keyboard.Enabled && !v &&
                 (keyboard.AutoEnglish || kind==InputContextKind.Password ||
                  kind==InputContextKind.Checking || kind==InputContextKind.Unavailable);
-            string signature=v+":"+automatic+":"+kind+":"+keyboard.Enabled+":"+keyboard.AutoEnglish+":"+pause;
+            string signature=v+":"+automatic+":"+kind+":"+keyboard.Enabled+":"+keyboard.AutoEnglish+":"+pause+":"+keyboard.UseVni;
             if(signature==displayedMode) return; displayedMode=signature;
             if(chrome!=null) chrome.UpdateMode(v,automatic,pause,kind);
             toggle.Text=pause ? "E  ·  NHƯỜNG PHÍM" : v ? "V  ·  TIẾNG VIỆT" :

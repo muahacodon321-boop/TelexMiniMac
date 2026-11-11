@@ -3,10 +3,10 @@
 ## Build status
 - Native ARM64 input method built with Swift / InputMethodKit.
 - Native SwiftUI settings app built and launched.
-- Telex composer: 26/26 automated tests passed, including English protection and Telex tone examples.
+- Telex composer: 3,324 automated checks passed, including 3,000 deterministic stress runs, Telex/VNI, English protection and Telex tone examples.
 - Bundle metadata passed `plutil`; both local bundles passed ad-hoc codesign verification.
 - Input method locally installed under `~/Library/Input Methods/TelexMini.app`.
-- `TISRegisterInputSource` returned 0 (success), and the input server process launched.
+- `TISRegisterInputSource` returned 0 (success) on 2026-11-11, but TIS source enumeration remained at 0 for TelexMini. The current login session **did not expose a usable input source**; no claim of integration success is made.
 - **Not yet integration-verified inside TextEdit, Chrome or password fields**. Newly registered bundle ID did not appear in `TISCreateInputSourceList` during this login session; log out and log back in before UI testing. No automatic logout/reboot performed.
 
 ## Paths
@@ -47,7 +47,7 @@ Windows uses keyboard hooks and Unicode replacement; macOS uses native IMK marke
 
 No globally installed keyboard hook or Accessibility permission is required by the macOS input source. The app does not collect user typing or send it over a network. Only a single in-progress composition remains in memory.
 
-Settings use `UserDefaults(suiteName: "com.telexmini.mac")`. User dictionaries are local at `~/Library/Application Support/TelexMini/EnglishWords.txt` and `VietnameseOverrides.txt`. Activate the input source again to refresh the lexicon.
+Settings use `UserDefaults(suiteName: "com.telexmini.mac")`. The advanced panel supports Telex/VNI, native IMK-local shortcut presets, exact bundle-id exclusions, login item registration through ServiceManagement (for the Settings application), import/export of local dictionary/config, and editing dictionaries without a separate text editor. User dictionaries are local at `~/Library/Application Support/TelexMini/EnglishWords.txt` and `VietnameseOverrides.txt`. Activate the input source again to refresh the lexicon.
 
 ## Shipping requirements (NOT done)
 

@@ -62,6 +62,14 @@ namespace TelexMini
         readonly InputContextMonitor context;
         int contextRevision=-1;
         internal bool AutoEnglish=false;
+        internal bool PreferEnglishExact {
+            get {return engine.PreferEnglishExact;}
+            set {engine.PreferEnglishExact=value;engine.Reset();}
+        }
+        internal bool UseVni {
+            get { return engine.UseVni; }
+            set { engine.UseVni=value; engine.Reset(); }
+        }
         internal bool RestoreInvalid=true;
         internal bool SmartEnglish {
             get { return engine.SmartEnglish; }
@@ -131,8 +139,8 @@ namespace TelexMini
             if (Down(0x11) || Down(0x12) || Down(0x5B) || Down(0x5C)) { engine.Reset(); return Native.CallNextHookEx(keyHook,code,message,data); }
             uint vk=key.Key;
             if (vk==8) { engine.Backspace(); return Native.CallNextHookEx(keyHook,code,message,data); }
-            if (vk>=0x41 && vk<=0x5A)
-            {
+            if ((vk>=0x41 && vk<=0x5A) ||
+                (engine.UseVni && vk>=0x31 && vk<=0x39 && !Down(0x10))) {
                 char c=(char)vk;
                 if (!(Down(0x10) ^ ((Native.GetKeyState(0x14)&1)!=0))) c=char.ToLowerInvariant(c);
                 string before=engine.Text, after=engine.Push(c);

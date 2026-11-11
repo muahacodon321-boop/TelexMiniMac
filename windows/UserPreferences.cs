@@ -27,9 +27,18 @@ namespace TelexMini
             string v;
             return values.TryGetValue(key,out v) ? (v=="true" ? true : v=="false" ? false : fallback) : fallback;
         }
-        internal static void Set(string key,bool value) {
-            values[key] = value ? "true" : "false";
+        internal static string String(string key,string fallback) {
+            string value;
+            return values.TryGetValue(key,out value) ? value : fallback;
+        }
+        internal static void Set(string key,bool value) { Set(key,value ? "true" : "false"); }
+        internal static void Set(string key,string value) {
+            values[key] = value ?? "";
             Save();
+        }
+        internal static void Reload() {
+            values.Clear();
+            foreach(var entry in Load()) values[entry.Key]=entry.Value;
         }
         static void Save() {
             try {
