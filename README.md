@@ -64,7 +64,17 @@ Build outputs: `build/TelexMini.app` and `build/TelexMini Settings.app` (ignored
 
 The offline lexicon includes common development terms such as `parameter`, `parameters`, `parameterized`, `parameterization`, `parallel` and `parser`. With Smart English enabled, it protects **each prefix as you type**, not only the completed word. Regression tests assert that `p`, `pa`, `par`, `para`, ... remain unchanged through `parameter` and verify Vietnamese Telex examples still work.
 
-Some strings are inherently ambiguous between English and Telex (for example `as` vs. Vietnamese `á`). You can disable Smart English or use `VietnameseOverrides.txt` to prefer Telex for selected sequences. The lexicon is not exhaustive.
+### Smart Bilingual v2: algorithmic detection
+
+The typing path now uses three **offline** signals, not just a list of known English words:
+
+1. **Word/prefix dictionary:** known English words stay literal from the first character.
+2. **Foreign onset detection:** tokens beginning with clearly non-Vietnamese clusters (e.g. `pr`, `fl`, `cr`, `wh`, `st`, or `p` followed by anything other than `h`) enter literal mode while typing, even when absent from the dictionary.
+3. **Syllable impossibility check:** when a provisional Telex transformation can no longer form a Vietnamese syllable (such as a second vowel group after a consonant or an illegal coda), the engine immediately restores the original key sequence and keeps the rest of that token literal.
+
+`VietnameseOverrides.txt` is checked as prefixes as well, so a custom Vietnamese sequence can override English detection **before** its final character. User-added English words still work as before. Tests cover unfamiliar English technical terms and immediate Vietnamese accent insertion with both implementations.
+
+**Limitations:** Completely ambiguous prefixes can still temporarily acquire a Telex accent before later characters disambiguate them. Some unknown English words are also indistinguishable from valid Telex syllables; no purely local, letter-by-letter heuristic can always infer the intended language. For those, add a word to `EnglishWords.txt`, toggle Smart English or use per-word Vietnamese overrides. No typing data is uploaded or recorded.
 
 ## Privacy
 

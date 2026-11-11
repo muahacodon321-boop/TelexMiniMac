@@ -55,6 +55,17 @@ Bộ từ điển offline có thêm các họ từ `parameter`, `parameters`, `p
 
 Trường hợp từ Anh hoàn toàn mới chưa có trong từ điển, có thể vào menu khay **Thêm từ tiếng Anh...** để bổ sung. Sau đó chọn **Nạp lại từ điển**. Lỗi trước đây nằm ở từ vắng mặt trong bộ từ điển gốc, không phải do tốc độ gõ.
 
+## Thuật toán song ngữ v2 (không cần từ điển cho mọi từ)
+
+TelexMini nhận diện Anh–Việt theo **3 lớp**:
+- Từ điển English offline giữ nguyên các từ và tiền tố đã biết.
+- Phát hiện đầu từ/cụm phụ âm thường chỉ có trong tiếng Anh (như `pr`, `fl`, `cr`, `st`, `wh`, `pa`). Những từ **chưa có trong từ điển** như `paradoxical`, `privatization`, `cryptanalysis` cũng không bị thêm dấu Telex.
+- Nếu một từ ban đầu có thể là tiếng Việt nhưng dần xuất hiện cấu trúc không thể tạo thành âm tiết Việt (đuôi phụ âm không hợp lệ, hai nhóm nguyên âm bị ngăn cách), bộ gõ **khôi phục các ký tự gốc ngay trong lúc nhập** rồi giữ nguyên phần còn lại của từ.
+
+Danh sách `VietnameseOverrides.txt` giờ được xem xét cả **tiền tố**, giúp ép ưu tiên Telex cho các chuỗi tùy chỉnh trước khi gõ hết từ. Dấu Telex vẫn đặt **ngay khi gõ**, kể cả dấu gõ trước phụ âm cuối (`tieesng` → `tiếng`).
+
+**Giới hạn:** Không thuật toán chỉ nhìn từng phím nào luôn đoán đúng các trường hợp mơ hồ (`as` tiếng Anh / `á` tiếng Việt). Một số từ Anh hiếm có thể tạm hiện dấu trong vài ký tự đầu trước khi được hoàn nguyên, hoặc trùng với một âm tiết Việt hợp lệ. Có thể bổ sung `EnglishWords.txt`, tắt bảo vệ English hoặc chỉnh danh sách ưu tiên Telex. Không đọc nội dung ô mật khẩu và không gửi dữ liệu lên mạng.
+
 ## Nhận diện tiếng Anh thông minh (offline)
 
 Mặc định bật **Bảo vệ từ tiếng Anh (offline)**. Telex Mini có từ điển gốc khoảng 1.500 từ phổ biến và kỹ thuật. Bộ gõ giữ nguyên chuỗi phím khi nó còn là tiền tố của một từ Anh đã biết, nhờ vậy giảm hiện tượng chữ bị biến thành dấu Telex trong lúc gõ. Khi tiền tố không còn khớp tiếng Anh, bộ gõ phát lại chuỗi phím qua Telex để người dùng vẫn có thể gõ dấu ngay sau nguyên âm hoặc bất kỳ chỗ nào trong từ. Không sử dụng Internet, AI, hay gửi văn bản đi đâu.

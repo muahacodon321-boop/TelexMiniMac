@@ -6,7 +6,17 @@ import Foundation
             ("tieengs","tiếng"), ("vieetj","việt"), ("truowngf","trường"),
             ("nguowif","người"), ("toasn","toán"), ("ddawng","đăng"),
             ("caamr","cẩm"), ("duongdwf","đường"), ("khoer","khoẻ"),
-            ("tieesng","tiếng"), ("uow","ươ"), ("esscape","escape")
+            ("tieesng","tiếng"), ("uow","ươ"), ("esscape","escape"),
+            ("chaof","chào"),("duwowngf","dường"),("hoaf","hoà"),
+            ("thuys","thuý"),("quas","quá"),("quys","quý"),
+            ("gias","giá"),("gif","gì"),("muoons","muốn"),
+            ("tuyeenr","tuyển"),("nguyeenx","nguyễn"),
+            ("huowsng","hướng"),("ruouwj","rượu"),
+            ("khuyur","khuỷu"),("cuwus","cứu"),("yeeus","yếu"),
+            ("quoocs","quốc"),("duongdwf","đường"),
+            ("ddoojng","động"),("cawsn","cắn"),
+            ("tuwj","tự"),("nhowx","nhỡ"),("vieecj","việc"),
+            ("phowr","phở"),("phuws","phứ"),("trawsng","trắng")
         ]
         let english=["as","office","assets","testing","framework","plugin",
                      "password","dashboard","release","browser","github","script","hello",
@@ -31,6 +41,31 @@ import Foundation
             }
             if e.text==raw && e.finish()==raw { passed+=1 }
             else { failed+=1; print("FAIL English: \(raw) => \(e.text) / \(e.finish())") }
+        }
+        // Unlisted English words test the algorithm, not the dictionary.
+        // A temporary Telex interpretation is allowed only while a prefix
+        // remains ambiguous; the fully typed unknown word must be literal.
+        let unknownEnglish=[
+            "paradoxical","paramagnets","privatization","fluctuation",
+            "cryptanalysis","synchronization","customizable","cursorial",
+            "verifiability","transactional","gradients","kernelization",
+            "robustness","photorealistic","subroutines","whimsical",
+            "microarchitecture","hyperparameterization","reparameterizing",
+            "asynchronousness","combinatorialism","cryptomining",
+            "dataclassification","encapsulationist","serializationist",
+            "decentralizationist","typographically","unpredictability",
+            "metaprogramming","cryptographically","infrastructural",
+            "managerialism","keyboardless","firmwareless"
+        ]
+        for raw in unknownEnglish {
+            if TelexComposer.english.contains(raw) {
+                failed+=1; print("FAIL unlisted-word fixture is in dictionary: \(raw)")
+                continue
+            }
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==raw && e.finish()==raw {passed+=1}
+            else {failed+=1;print("FAIL unknown English: \(raw) => \(e.text) / \(e.finish())")}
         }
         let e=TelexComposer();for c in "tieengs" { _=e.push(c) }
         e.backspace();_=e.push("g")

@@ -15,11 +15,13 @@ final class TelexComposer {
     private(set) var raw = ""
     private var literal = false
     private var englishCandidate = false
+    private var foreignWord = false
     var smartEnglish = true
     var restoreInvalid = true
     private(set) static var english = Set<String>()
     private(set) static var prefixes = Set<String>()
     private(set) static var vietnamese = Set<String>()
+    private static var vietnamesePrefixes = Set<String>()
     private static var loaded = false
 
     init() { Self.loadLexicon() }
@@ -46,20 +48,30 @@ final class TelexComposer {
         if let data = try? String(contentsOf: vn, encoding: .utf8) {
             for line in data.split(whereSeparator: \.isNewline) {
                 let word=line.trimmingCharacters(in: .whitespaces).lowercased()
-                if !word.isEmpty && word.first != "#" { vietnamese.insert(word) }
+                if !word.isEmpty && word.first != "#" && vietnamese.insert(word).inserted {
+                    for i in 1..<word.count {vietnamesePrefixes.insert(String(word.prefix(i)))}
+                }
             }
         }
     }
-    static func reloadLexicon() { loaded=false; english.removeAll(); prefixes.removeAll(); vietnamese.removeAll(); loadLexicon() }
+    static func reloadLexicon() {
+        loaded=false; english.removeAll(); prefixes.removeAll()
+        vietnamese.removeAll(); vietnamesePrefixes.removeAll(); loadLexicon()
+    }
+    private static func preferVietnamesePrefix(_ raw:String) -> Bool {
+        let word=raw.lowercased()
+        return vietnamese.contains(word) || vietnamesePrefixes.contains(word)
+    }
     private static func isEnglishPrefix(_ word: String) -> Bool {
         let w=word.lowercased()
         return !vietnamese.contains(w) && (english.contains(w) || prefixes.contains(w))
     }
-    func reset() { text=""; raw=""; literal=false; englishCandidate=false }
+    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false }
     func backspace() {
         if !text.isEmpty { text.removeLast() }
         raw=text
         englishCandidate=smartEnglish && Self.isEnglishPrefix(raw)
+        foreignWord=smartEnglish && Self.foreignStart(raw)
         if text.isEmpty { literal=false }
     }
     private static func row(_ c: Character) -> Int? {
@@ -180,25 +192,65 @@ final class TelexComposer {
         }
         text=Self.normalize(text+String(key))
     }
+    private static func foreignStart(_ raw:String) -> Bool {
+        let word=raw.lowercased()
+        guard word.count>=2 else { return false }
+        let chars=Array(word)
+        if "fjwz".contains(chars[0]) { return true }
+        if chars[0]=="p" && chars[1] != "h" { return true }
+        let pair=String(chars.prefix(2))
+        let clusters:Set<String>=[
+            "bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr",
+            "sc","sk","sl","sm","sn","sp","st","sw","tw","wh","wr",
+            "kn","ps","pt"
+        ]
+        return clusters.contains(pair)
+    }
+    private static func impossibleVietnamese(_ text:String) -> Bool {
+        let word=Array(text.lowercased()).map(root)
+        guard let first=word.firstIndex(where:{bases.contains($0)}) else {return false}
+        let onset=String(word.prefix(first))
+        let allowed:Set<String>=["","b","c","ch","d","đ","g","gh","h","k","kh",
+                                  "l","m","n","ng","ngh","nh","p","ph","q","r",
+                                  "s","t","th","tr","v","x"]
+        if !allowed.contains(onset) {return true}
+        var end=first
+        while end<word.count && bases.contains(word[end]) {end+=1}
+        let ending=Array(word.dropFirst(end))
+        if ending.contains(where:{bases.contains($0)}) {return true}
+        let codas:Set<String>=["","c","ch","m","n","ng","nh","p","t"]
+        return !codas.contains(String(ending))
+    }
     func push(_ key: Character) -> String {
         raw.append(key)
-        if smartEnglish && !literal && Self.isEnglishPrefix(raw) {
-            englishCandidate=true
-            text=raw
-            return text
+        if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) {
+            if foreignWord || Self.foreignStart(raw) {
+                foreignWord=true
+                englishCandidate=false
+                text=raw
+                return text
+            }
+            if Self.isEnglishPrefix(raw) {
+                englishCandidate=true
+                text=raw
+                return text
+            }
         }
         if englishCandidate {
             englishCandidate=false
             let old=raw
             text=""; literal=false
             for c in old { core(c) }
-            return text
+        } else {core(key)}
+        if smartEnglish && !literal && !Self.preferVietnamesePrefix(raw) &&
+           raw != text && Self.impossibleVietnamese(text) {
+            foreignWord=true
+            text=raw
         }
-        core(key)
         return text
     }
     func finish() -> String {
-        if smartEnglish && !literal && Self.english.contains(raw.lowercased()) &&
+        if smartEnglish && !literal && (foreignWord || Self.english.contains(raw.lowercased())) &&
             !Self.vietnamese.contains(raw.lowercased()) { return raw }
         if englishCandidate {
             let replay=TelexComposer()

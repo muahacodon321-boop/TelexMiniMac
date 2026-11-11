@@ -68,6 +68,25 @@ namespace TelexMini
                 Equal("Smart Vietnamese "+word,reference.Text,bilingual.Text);
                 Equal("Smart Vietnamese boundary "+word,reference.Finish(true),bilingual.Finish(true));
             }
+            // Algorithmic recovery of unfamiliar English words, not dictionary matches.
+            foreach(string word in new[] {
+                "paradoxical","paramagnets","privatization","fluctuation",
+                "cryptanalysis","synchronization","customizable","cursorial",
+                "verifiability","transactional","gradients","kernelization",
+                "robustness","photorealistic","subroutines","whimsical",
+                "microarchitecture","hyperparameterization","reparameterizing",
+                "asynchronousness","combinatorialism","cryptomining",
+                "dataclassification","encapsulationist","serializationist",
+                "decentralizationist","typographically","unpredictability",
+                "metaprogramming","cryptographically","infrastructural",
+                "managerialism","keyboardless","firmwareless"
+            }) {
+                Equal("Unknown English not in dictionary "+word,"False",EnglishLexicon.IsWord(word).ToString());
+                var bilingual=new TelexEngine { SmartEnglish=true };
+                foreach(char c in word) bilingual.Push(c);
+                Equal("Unknown English while typing "+word,word,bilingual.Text);
+                Equal("Unknown English boundary "+word,word,bilingual.Finish(true));
+            }
             Equal("Password always English", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Password).ToString());
             Equal("Unknown field fail closed", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Checking).ToString());
             Equal("Unavailable field fail closed", "False", ContextPolicy.UseVietnamese(true,false,InputContextKind.Unavailable).ToString());

@@ -15,14 +15,15 @@ namespace TelexMini
         public string Text { get; private set; }
         // Off by default for engine-only use; enabled in the keyboard application.
         public bool SmartEnglish { get; set; }
-        bool literalWord, englishCandidate;
+        bool literalWord, englishCandidate, foreignWord;
         string rawWord="";
         public TelexEngine() { Reset(); }
-        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; rawWord=""; }
+        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; rawWord=""; }
         public void Backspace() {
             if (Text.Length > 0) Text = Text.Substring(0, Text.Length - 1);
             rawWord=Text; // Never restore deleted characters after an edit.
             englishCandidate=SmartEnglish && EnglishLexicon.HasPrefix(rawWord);
+            foreignWord=SmartEnglish && HasForeignStart(rawWord);
             if (Text.Length == 0) literalWord = false;
         }
         string Literal(string text) { literalWord = true; return Text = text; }
@@ -88,29 +89,75 @@ namespace TelexMini
             foreach (char c in text) if (Tone(c) != 0) tone = Tone(c);
             return SetTone(text, tone);
         }
+        // Strong foreign onsets do not occur in native Vietnamese syllables.
+        // Keep them verbatim without waiting for the end of a word. "ph", "tr",
+        // "ch", "ng" etc. still follow normal Vietnamese Telex processing.
+        static bool HasForeignStart(string raw)
+        {
+            if (raw.Length < 2) return false;
+            string word=raw.ToLowerInvariant();
+            char first=word[0];
+            if (first=='f' || first=='j' || first=='w' || first=='z') return true;
+            if (first=='p' && word[1]!='h') return true;
+            const string onsets="|bl|br|cl|cr|dr|fl|fr|gl|gr|pl|pr|sc|sk|sl|sm|sn|sp|st|sw|tw|wh|wr|kn|ps|pt|";
+            if (onsets.IndexOf("|"+word.Substring(0,2)+"|",StringComparison.Ordinal)>=0) return true;
+            return false;
+        }
+        static bool ImpossibleVietnamese(string text)
+        {
+            var plain=new StringBuilder();
+            foreach(char c in text) plain.Append(Base(c));
+            string word=plain.ToString().ToLowerInvariant();
+            int first=0;
+            while(first<word.Length && Bases.IndexOf(word[first])<0) first++;
+            if(first==word.Length) return false;
+            string onset=word.Substring(0,first);
+            const string onsets="||b|c|ch|d|đ|g|gh|h|k|kh|l|m|n|ng|ngh|nh|p|ph|q|r|s|t|th|tr|v|x|";
+            if(onsets.IndexOf("|"+onset+"|",StringComparison.Ordinal)<0) return true;
+            int end=first;
+            while(end<word.Length && Bases.IndexOf(word[end])>=0) end++;
+            string ending=word.Substring(end);
+            // A second vowel after an intervening consonant makes this a
+            // multi-syllable English token rather than a single Telex syllable.
+            foreach(char c in ending) if(Bases.IndexOf(c)>=0) return true;
+            // No Vietnamese coda ends in rs, st, nd, ck, etc.
+            const string codas="||c|ch|m|n|ng|nh|p|t|";
+            return codas.IndexOf("|"+ending+"|",StringComparison.Ordinal)<0;
+        }
         public string Push(char key)
         {
             rawWord+=key;
-            // Keep likely English words literal *while typing*. When the prefix no
-            // longer matches, replay its original keys through Telex immediately.
-            // This preserves Telex transformations in the middle of Vietnamese words.
-            if (SmartEnglish && !literalWord && EnglishLexicon.HasPrefix(rawWord)) {
-                englishCandidate=true;
-                return Text=rawWord;
+            if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
+                if (foreignWord || HasForeignStart(rawWord)) {
+                    foreignWord=true;
+                    englishCandidate=false;
+                    return Text=rawWord;
+                }
+                if (EnglishLexicon.HasPrefix(rawWord)) {
+                    englishCandidate=true;
+                    return Text=rawWord;
+                }
             }
             if (englishCandidate) {
                 englishCandidate=false;
                 string raw=rawWord;
                 Text=""; literalWord=false;
                 foreach(char c in raw) PushCore(c);
-                return Text;
+            } else PushCore(key);
+            // If a transformed token cannot be a Vietnamese syllable any more,
+            // undo the speculative accent immediately and keep subsequent keys
+            // literal. No dictionary lookup or network request is required.
+            if (SmartEnglish && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord) &&
+                rawWord!=Text && ImpossibleVietnamese(Text)) {
+                foreignWord=true;
+                return Text=rawWord;
             }
-            return PushCore(key);
+            return Text;
         }
         // Conservative syllable check + optional offline English recognition.
         public string Finish(bool restoreInvalid)
         {
-            if (SmartEnglish && !literalWord && EnglishLexicon.IsWord(rawWord)) return rawWord;
+            if (SmartEnglish && !literalWord && (foreignWord || EnglishLexicon.IsWord(rawWord))) return rawWord;
             if (englishCandidate) {
                 // A protected English prefix did not finish as a recognized word.
                 var replay=new TelexEngine();
