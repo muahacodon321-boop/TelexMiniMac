@@ -18,6 +18,7 @@ final class TelexComposer {
     private var foreignWord = false
     private var telexShaped = false
     private var lastTelexKey = false
+    private var lastToneApplied = false
     private var pendingEscapeRaw:String? = nil
     var smartEnglish = true
     var useVni = false
@@ -71,7 +72,7 @@ final class TelexComposer {
         let w=word.lowercased()
         return !vietnamese.contains(w) && (english.contains(w) || prefixes.contains(w))
     }
-    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; pendingEscapeRaw=nil }
+    func reset() { text=""; raw=""; literal=false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; lastToneApplied=false; pendingEscapeRaw=nil }
     func backspace() {
         if !text.isEmpty { text.removeLast() }
         raw=text
@@ -79,6 +80,7 @@ final class TelexComposer {
         foreignWord=smartEnglish && Self.foreignStart(raw)
         telexShaped=text != raw
         lastTelexKey=false
+        lastToneApplied=false
         pendingEscapeRaw=nil
         if text.isEmpty { literal=false }
     }
@@ -277,6 +279,16 @@ final class TelexComposer {
         let last=chars[chars.count-1]
         return ("aeo".contains(last) && chars[chars.count-2] == last)
     }
+    private static func immediateToneKey(_ raw:String,_ key:Character)->Bool {
+        guard "sfrxj".contains(Character(String(key).lowercased())),
+              !raw.isEmpty, !impossibleVietnamese(raw) else {return false}
+        return raw.contains(where:{row($0) != nil})
+    }
+    private static func vowelAfterTone(_ raw:String,_ key:Character)->Bool {
+        guard "aeiouy".contains(Character(String(key).lowercased())),
+              let last=raw.last,raw.count>=2 else {return false}
+        return "sfrxj".contains(Character(String(last).lowercased()))
+    }
     func push(_ key: Character) -> String {
         if let pending=pendingEscapeRaw {
             let candidate=pending+String(key)
@@ -313,8 +325,22 @@ final class TelexComposer {
             return text
         }
         let prior=text
+        let toneNow = !useVni && !literal && !foreignWord &&
+                      Self.immediateToneKey(raw,key)
+        let afterTone = !useVni && !literal && lastToneApplied &&
+                        Self.vowelAfterTone(raw,key)
         raw.append(key)
         lastTelexKey=false
+        lastToneApplied=false
+        if afterTone {
+            literal=true
+            foreignWord=false
+            englishCandidate=false
+            telexShaped=false
+            pendingEscapeRaw=nil
+            text=raw
+            return text
+        }
         let shapeNow = !useVni && Self.immediateShapeKey(raw)
         if smartEnglish && !useVni && !literal && !Self.preferVietnamesePrefix(raw) {
             if foreignWord || Self.foreignStart(raw) {
@@ -326,7 +352,7 @@ final class TelexComposer {
             }
             // A valid Vietnamese syllable wins after the user explicitly
             // enters a Telex shaping key, even if English has the same spelling.
-            if !shapeNow &&
+            if !shapeNow && !toneNow &&
                (!telexShaped ||
                 (Self.english.contains(raw.lowercased()) &&
                  (preferEnglishExact || !Self.looksVietnamese(text)))) &&
@@ -344,7 +370,8 @@ final class TelexComposer {
             for c in old { core(c) }
         } else {core(key)}
         lastTelexKey=(text != prior+String(key)) && !literal
-        if shapeNow && raw != text {telexShaped=true}
+        if (shapeNow || toneNow) && raw != text {telexShaped=true}
+        lastToneApplied=toneNow && raw != text
         if smartEnglish && !useVni && !literal && !Self.preferVietnamesePrefix(raw) &&
            raw != text && Self.impossibleVietnamese(text) {
             foreignWord=true

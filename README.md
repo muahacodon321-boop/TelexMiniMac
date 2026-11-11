@@ -68,6 +68,17 @@ The WinForms dashboard uses an explicit two-column layout so the sidebar cannot 
 
 The offline lexicon includes common development terms such as `parameter`, `parameters`, `parameterized`, `parameterization`, `parallel` and `parser`. With Smart English enabled, it protects **each prefix as you type**, not only the completed word. Regression tests assert that `p`, `pa`, `par`, `para`, ... remain unchanged through `parameter` and verify Vietnamese Telex examples still work.
 
+### Immediate tone keys and placement (regression fix)
+
+In **Vietnamese/Balanced mode**, an explicit Telex tone key must act **on the
+current keystroke**, even if the raw keys happen to be an English prefix:
+`a` → `as` displays **á** immediately, `ex` displays **ẽ**. Repeating the
+tone key escapes it as before (`ass → as`). A new vowel after a tone-key
+sequence cannot be treated as a late shaping command:
+`exe → exe`, whereas `eex → ễ` (shape before tone).
+Both engines test these intermediate outputs and their final word-boundary
+results, so the English lexicon cannot silently swallow a user's accent.
+
 ### Immediate Telex shaping (smart bilingual)
 
 When Vietnamese mode is on, a second vowel key now performs its Telex

@@ -17,10 +17,10 @@ namespace TelexMini
         public bool SmartEnglish { get; set; }
         public bool UseVni { get; set; }
         public bool PreferEnglishExact { get; set; }
-        bool literalWord, englishCandidate, foreignWord, telexShaped, lastTelexKey;
+        bool literalWord, englishCandidate, foreignWord, telexShaped, lastTelexKey, lastToneApplied;
         string rawWord="", pendingEscapeRaw=null;
         public TelexEngine() { Reset(); }
-        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; pendingEscapeRaw=null; rawWord=""; }
+        public void Reset() { Text = ""; literalWord = false; englishCandidate=false; foreignWord=false; telexShaped=false; lastTelexKey=false; lastToneApplied=false; pendingEscapeRaw=null; rawWord=""; }
         public void Backspace() {
             if (Text.Length > 0) Text = Text.Substring(0, Text.Length - 1);
             rawWord=Text; // Never restore deleted characters after an edit.
@@ -28,6 +28,7 @@ namespace TelexMini
             foreignWord=SmartEnglish && HasForeignStart(rawWord);
             telexShaped=Text!=rawWord;
             lastTelexKey=false;
+            lastToneApplied=false;
             pendingEscapeRaw=null;
             if (Text.Length == 0) literalWord = false;
         }
@@ -140,6 +141,22 @@ namespace TelexMini
             return (last=='a' || last=='e' || last=='o') &&
                    char.ToLowerInvariant(raw[n-2])==last;
         }
+        static bool ImmediateToneKey(string raw, char key)
+        {
+            if ("sfrxj".IndexOf(char.ToLowerInvariant(key))<0 || raw.Length==0) return false;
+            // A Telex tone is meaningful only after a Vietnamese-looking
+            // vowel, and must be shown immediately rather than shielded by
+            // a speculative English dictionary prefix ("as" -> "á").
+            if (ImpossibleVietnamese(raw)) return false;
+            foreach(char c in raw) if (Row(c)>=0) return true;
+            return false;
+        }
+        static bool VowelAfterTone(string raw, char key)
+        {
+            if ("aeiouy".IndexOf(char.ToLowerInvariant(key))<0 || raw.Length<2) return false;
+            char previous=char.ToLowerInvariant(raw[raw.Length-1]);
+            return "sfrxj".IndexOf(previous)>=0;
+        }
         public string Push(char key)
         {
             // A repeat can also be the start of a longer English word:
@@ -175,8 +192,21 @@ namespace TelexMini
                 return Text;
             }
             string prior=Text;
+            bool toneNow=!UseVni && !literalWord && !foreignWord &&
+                         ImmediateToneKey(rawWord,key);
+            bool afterTone=!UseVni && !literalWord && lastToneApplied &&
+                           VowelAfterTone(rawWord,key);
             rawWord+=key;
             lastTelexKey=false;
+            lastToneApplied=false;
+            // A tone key between two vowels is not a Vietnamese tone at
+            // the correct position: ex -> ẽ but exe -> exe (eex -> ễ).
+            // Restore the raw token BEFORE another e can shape ẽ into ễ.
+            if(afterTone) {
+                literalWord=true; foreignWord=false; englishCandidate=false;
+                telexShaped=false; pendingEscapeRaw=null;
+                return Text=rawWord;
+            }
             bool shapeNow=!UseVni && ImmediateShapeKey(rawWord);
             if (SmartEnglish && !UseVni && !literalWord && !EnglishLexicon.PreferVietnamesePrefix(rawWord)) {
                 if (foreignWord || HasForeignStart(rawWord)) {
@@ -188,7 +218,7 @@ namespace TelexMini
                 // After an explicit Telex shape, an English dictionary match
                 // must not override a valid Vietnamese syllable (been -> bên).
                 // Unknown/invalid Vietnamese shapes can still recover to English.
-                if (!shapeNow &&
+                if (!shapeNow && !toneNow &&
                     (!telexShaped ||
                      (EnglishLexicon.IsWord(rawWord) &&
                       (PreferEnglishExact || !LooksVietnamese(Text)))) &&
@@ -205,7 +235,8 @@ namespace TelexMini
                 foreach(char c in raw) PushCore(c);
             } else PushCore(key);
             lastTelexKey=Text!=prior+key && !literalWord;
-            if(shapeNow && Text!=rawWord) telexShaped=true;
+            if((shapeNow || toneNow) && Text!=rawWord) telexShaped=true;
+            lastToneApplied=toneNow && Text!=rawWord;
             // If a transformed token cannot be a Vietnamese syllable any more,
             // undo the speculative accent immediately and keep subsequent keys
             // literal. No dictionary lookup or network request is required.

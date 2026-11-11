@@ -90,6 +90,18 @@ kết quả ghép âm tiết tiếng Việt không hợp lệ. Khi hoàn toàn m
 ví dụ `boost → bốt`, ứng dụng ưu tiên tiếng Việt khi chế độ V đang bật;
 chuyển sang E để gõ nguyên văn tiếng Anh.
 
+## Sửa ưu tiên dấu tức thời
+
+Khi đang chọn V (Telex, Cân bằng / ưu tiên Việt): `as → á` ngay sau
+phím `s`, `ex → ẽ` ngay sau phím `x`. Việc chuỗi `as` có
+trong từ điển tiếng Anh không được giữ nguyên `as` ở chế độ Cân bằng.
+Nếu muốn gõ nguyên văn `as`, dùng `ass → as` (hủy dấu).
+
+Quy tắc thứ tự dấu: `ee → ê`, sau đó `eex → ễ`.
+Còn `exe → exe` (không được thành `ễ`), vì `x` chen
+giữa hai nguyên âm không tạo thành quy trình gõ `ê` rồi thêm
+dấu ngã. Bộ gõ phải hoàn nguyên chữ gốc ngay trong lúc gõ.
+
 ## Gõ lặp phím để hủy dấu (kiểu UniKey)
 
 Trong chế độ V, nếu một phím Telex đã tạo dấu hoặc biến đổi chữ, gõ lại

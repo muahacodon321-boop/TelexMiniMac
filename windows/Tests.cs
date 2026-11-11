@@ -52,13 +52,18 @@ namespace TelexMini
             }
             var ambiguous=new TelexEngine(); foreach(char c in "as") ambiguous.Push(c);
             Equal("Ambiguous word retains Vietnamese","á",ambiguous.Finish(true));
-            foreach(string word in new[] { "as","office","testing","password","framework","plugin","dashboard","release","browser","github","script","assets","developer","windows","hello","english","parameter","parameters","parameterized","parameterization","parametric","parametrize","params","parentheses","parallel","parser" }) {
+            foreach(string word in new[] { "office","testing","password","framework","plugin","dashboard","release","browser","github","script","assets","developer","windows","hello","english","parameter","parameters","parameterized","parameterization","parametric","parametrize","params","parentheses","parallel","parser" }) {
                 var bilingual=new TelexEngine { SmartEnglish=true };
                 string prefix="";
                 foreach(char c in word) {
                     prefix+=c;
                     bilingual.Push(c);
-                    string expectedPrefix=prefix=="off" ? "of" :
+                    string expectedPrefix=prefix=="of" ? "ò" :
+                        prefix=="as" ? "á" :
+                        prefix=="tes" ? "té" :
+                        prefix=="test" ? "tét" :
+                        prefix=="das" ? "dá" :
+                        prefix=="off" ? "of" :
                         prefix=="ass" ? "as" : prefix;
                     Equal("Smart English prefix "+prefix,expectedPrefix,bilingual.Text);
                 }
@@ -75,6 +80,8 @@ namespace TelexMini
             // Telex shaping must happen on the second vowel, never at the
             // word boundary. English words sharing a prefix can recover later.
             foreach(var pair in new[] {
+                new[]{"as","á"},new[]{"ex","ẽ"},new[]{"exe","exe"},
+                new[]{"ee","ê"},new[]{"eex","ễ"},
                 new[]{"b","b"}, new[]{"bo","bo"},new[]{"boo","bô"},
                 new[]{"boon","bôn"},new[]{"boons","bốn"},
                 new[]{"aa","â"},new[]{"ee","ê"},new[]{"oo","ô"},
@@ -103,6 +110,18 @@ namespace TelexMini
                 foreach(char c in pair[0]) bilingual.Push(c);
                 Equal("Vietnamese priority "+pair[0],pair[1],bilingual.Text);
                 Equal("Vietnamese priority at boundary "+pair[0],pair[1],bilingual.Finish(true));
+            }
+            // Tone commands are immediate; a vowel after an unshaped
+            // toned vowel means an English token rather than a second shape.
+            foreach(var pair in new[] {
+                new[]{"as","á"},new[]{"ass","as"},
+                new[]{"ex","ẽ"},new[]{"exe","exe"},
+                new[]{"ee","ê"},new[]{"eex","ễ"}
+            }) {
+                var e=new TelexEngine {SmartEnglish=true};
+                foreach(char c in pair[0]) e.Push(c);
+                Equal("Immediate tone placement "+pair[0],pair[1],e.Text);
+                Equal("Immediate tone boundary "+pair[0],pair[1],e.Finish(true));
             }
             // Repeating an effective Telex key restores the original raw
             // typing and keeps subsequent letters literal until boundary.

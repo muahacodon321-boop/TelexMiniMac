@@ -18,7 +18,7 @@ import Foundation
             ("tuwj","tự"),("nhowx","nhỡ"),("vieecj","việc"),
             ("phowr","phở"),("phuws","phứ"),("trawsng","trắng")
         ]
-        let english=["as","office","assets","testing","framework","plugin",
+        let english=["office","assets","testing","framework","plugin",
                      "password","dashboard","release","browser","github","script","hello",
                      "parameter","parameters","parameterized","parameterization",
                      "parametric","parametrize","params","parentheses","parallel","parser"]
@@ -37,8 +37,11 @@ import Foundation
                 // A repeated Telex key is an immediate escape. It may
                 // temporarily omit the duplicate at "off"/"ass" until the
                 // next key proves the user meant "office"/"assets".
-                let expectedPrefix=(prefix=="off" ? "of" :
-                                    prefix=="ass" ? "as" : prefix)
+                let overrides:[String:String]=[
+                    "of":"ò","as":"á","tes":"té","test":"tét",
+                    "das":"dá","off":"of","ass":"as"
+                ]
+                let expectedPrefix=overrides[prefix] ?? prefix
                 if actual != expectedPrefix {
                     failed+=1
                     print("FAIL English in-progress: \(raw) at \(prefix) => \(actual), expected \(expectedPrefix)")
@@ -76,6 +79,8 @@ import Foundation
         // such as "book" shares the same prefix. An exact English word can
         // recover later without delaying Vietnamese composition.
         let immediate:[(String,String)] = [
+            ("as","á"),("ex","ẽ"),("exe","exe"),("ee","ê"),("eex","ễ"),
+            ("ass","as"),("boosst","boost"),
             ("b","b"),("bo","bo"),("boo","bô"),("boon","bôn"),
             ("boons","bốn"),("aa","â"),("ee","ê"),("oo","ô"),
             ("tiee","tiê"),("tieen","tiên"),("tieengs","tiếng")
@@ -91,6 +96,17 @@ import Foundation
             for c in raw { _=e.push(c) }
             if e.text==expected && e.finish()==expected {passed+=1}
             else {failed+=1;print("FAIL English after immediate shape: \(raw) => \(e.text) / \(e.finish())")}
+        }
+        // Regression for tone position: a raw vowel + tone + vowel must
+        // not let the final vowel re-shape an already toned vowel.
+        for (raw,expected) in [
+            ("as","á"),("ass","as"),("ex","ẽ"),("exe","exe"),
+            ("ee","ê"),("eex","ễ"),("as","á"),("exe","exe")
+        ] {
+            let e=TelexComposer()
+            for c in raw { _=e.push(c) }
+            if e.text==expected && e.finish()==expected {passed+=1}
+            else {failed+=1;print("FAIL immediate tone and placement \(raw): \(e.text) / \(e.finish()), expected \(expected)")}
         }
         // Vietnamese mode wins when a complete Telex syllable conflicts
         // with a dictionary English word (been -> bên).
