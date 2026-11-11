@@ -18,6 +18,17 @@ import Foundation
             ("tuwj","tự"),("nhowx","nhỡ"),("vieecj","việc"),
             ("phowr","phở"),("phuws","phứ"),("trawsng","trắng"),
             ("chayj","chạy"),("chajy","chạy"),("chay","chay"),
+            ("kieeur","kiểu"),("kieeru","kiểu"),
+            ("nhieeuf","nhiều"),("nhieefu","nhiều"),
+            ("vaayj","vậy"),("vaajy","vậy"),
+            ("yeeus","yếu"),("yeesu","yếu"),
+            ("nguowif","người"),("nguowfi","người"),
+            ("muoons","muốn"),("muoosn","muốn"),
+            ("tuyeenr","tuyển"),("tuyeern","tuyển"),
+            ("vieecj","việc"),("vieejc","việc"),
+            ("duongdwf","đường"),("duongdfw","đường"),
+            ("ngoais","ngoái"),("ngoasi","ngoái"),
+            ("tieengs","tiếng"),("tieesng","tiếng"),
             ("cha","cha")
         ]
         let english=["office","assets","testing","framework","plugin",
@@ -76,6 +87,26 @@ import Foundation
             for c in raw { _=e.push(c) }
             if e.text==raw && e.finish()==raw {passed+=1}
             else {failed+=1;print("FAIL unknown English: \(raw) => \(e.text) / \(e.finish())")}
+        }
+        // Metamorphic coverage: for every tone key, moving it before the
+        // final vowel of a legitimate diphthong must yield the same Unicode.
+        // Covers 30 combinations beyond the manually curated word fixtures.
+        for (stem,vowel) in [("kiee","u"),("nhiee","u"),
+                             ("vaa","y"),("cha","y"),
+                             ("nguow","i"),("yee","u")] {
+            for tone in "sfrxj" {
+                let before=stem+String(tone)+vowel
+                let after=stem+vowel+String(tone)
+                let first=TelexComposer(),second=TelexComposer()
+                for c in before {_ = first.push(c)}
+                for c in after {_ = second.push(c)}
+                let wanted=second.finish()
+                if first.text==wanted && first.finish()==wanted && wanted != before {
+                    passed+=1
+                } else {
+                    failed+=1;print("FAIL tone placement \(before) => \(first.text), after \(after) => \(wanted)")
+                }
+            }
         }
         // Accent keys must be applied immediately, even if an English word
         // such as "book" shares the same prefix. An exact English word can

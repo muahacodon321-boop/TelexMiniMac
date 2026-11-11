@@ -30,7 +30,17 @@ namespace TelexMini
             {"esscape","escape"}, {"esscapes","escapes"}, {"asssets","assets"},
             {"offfice","office"}, {"eeeror","eeror"}, {"dddriver","ddriver"},
             {"owwword","owword"}, {"uowwword","uowword"}, {"ESSCAPE","ESCAPE"},
-            {"chayj","chạy"}, {"chajy","chạy"}
+            {"chayj","chạy"}, {"chajy","chạy"},
+            {"kieeur","kiểu"}, {"kieeru","kiểu"},
+            {"nhieeuf","nhiều"}, {"nhieefu","nhiều"},
+            {"vaayj","vậy"}, {"vaajy","vậy"},
+            {"yeeus","yếu"}, {"yeesu","yếu"},
+            {"nguowif","người"}, {"nguowfi","người"},
+            {"muoons","muốn"}, {"muoosn","muốn"},
+            {"tuyeenr","tuyển"}, {"tuyeern","tuyển"},
+            {"vieecj","việc"}, {"vieejc","việc"},
+            {"duongdwf","đường"}, {"duongdfw","đường"},
+            {"ngoais","ngoái"}, {"ngoasi","ngoái"}
         };
         static void Equal(string label,string expected,string actual)
         {
@@ -77,6 +87,23 @@ namespace TelexMini
                 var reference=new TelexEngine(); foreach(char c in word) reference.Push(c);
                 Equal("Smart Vietnamese "+word,reference.Text,bilingual.Text);
                 Equal("Smart Vietnamese boundary "+word,reference.Finish(true),bilingual.Finish(true));
+            }
+            // Metamorphic tone-position tests: 6 vowel families x 5 tones.
+            // A tone before the last vowel must equal the same tone at the
+            // end, regardless of which accent key is used.
+            foreach(var family in new[] {
+                new[]{"kiee","u"},new[]{"nhiee","u"},new[]{"vaa","y"},
+                new[]{"cha","y"},new[]{"nguow","i"},new[]{"yee","u"}
+            }) foreach(char mark in "sfrxj") {
+                string before=family[0]+mark+family[1];
+                string after=family[0]+family[1]+mark;
+                var first=new TelexEngine {SmartEnglish=true};
+                var second=new TelexEngine {SmartEnglish=true};
+                foreach(char c in before) first.Push(c);
+                foreach(char c in after) second.Push(c);
+                string expected=second.Finish(true);
+                Equal("Accent before final vowel "+before,expected,first.Text);
+                Equal("Accent before final vowel boundary "+before,expected,first.Finish(true));
             }
             // Telex shaping must happen on the second vowel, never at the
             // word boundary. English words sharing a prefix can recover later.

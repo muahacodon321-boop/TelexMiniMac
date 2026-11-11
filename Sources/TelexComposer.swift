@@ -327,10 +327,14 @@ final class TelexComposer {
         let prior=text
         let toneNow = !useVni && !literal && !foreignWord &&
                       Self.immediateToneKey(raw,key)
-        let withoutTone=String(raw.dropLast())+String(key)
+        // Validate the ACTUAL composed syllable after extending the vowel,
+        // not the raw key sequence (which may contain an earlier ee/aa/oo).
+        // kieer + u -> kiểu, nhieef + u -> nhiều, vaaj + y -> vậy.
+        // ex + e -> ẽe is invalid and must restore literal "exe".
+        let extendedSyllable=Self.normalize(text+String(key))
         let afterTone = !useVni && !literal && lastToneApplied &&
                         Self.vowelAfterTone(raw,key) &&
-                        !Self.looksVietnamese(withoutTone)
+                        !Self.looksVietnamese(extendedSyllable)
         raw.append(key)
         lastTelexKey=false
         lastToneApplied=false

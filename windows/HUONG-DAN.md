@@ -106,6 +106,21 @@ Riêng vần tiếng Việt hợp lệ được gõ dấu trước nguyên âm c
 động: `chayj → chạy` và `chajy → chạy` đều được hỗ trợ. Không áp dụng
 máy móc quy tắc `exe` cho vần `ay`, `uy`, ...
 
+**Sửa lỗi kiểm tra ghép vần toàn cục:** thay vì kiểm tra chuỗi phím thô
+(ví dụ `kieer` có `ee`), TelexMini kiểm tra âm tiết Unicode đã chuyển
+dấu rồi mới quyết định có hoàn nguyên từ tiếng Anh hay không.
+Các cách gõ sau đều phải hoạt động:
+- `kieeur` và `kieeru` → **kiểu**
+- `nhieeuf` và `nhieefu` → **nhiều**
+- `vaayj` và `vaajy` → **vậy**
+- `nguowif` và `nguowfi` → **người**
+- `chayj` và `chajy` → **chạy**
+
+Bộ kiểm thử còn so sánh 30 tổ hợp các dấu s/f/r/x/j đứng trước và sau
+nguyên âm cuối trong sáu nhóm vần, bên cạnh các từ tiếng Anh và những
+trường hợp như `exe → exe`. Các kiểm thử này đánh giá engine; tương
+thích với mọi trình soạn thảo vẫn cần kiểm thử thực tế.
+
 ## Gõ lặp phím để hủy dấu (kiểu UniKey)
 
 Trong chế độ V, nếu một phím Telex đã tạo dấu hoặc biến đổi chữ, gõ lại

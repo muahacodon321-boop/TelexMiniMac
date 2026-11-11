@@ -194,11 +194,13 @@ namespace TelexMini
             string prior=Text;
             bool toneNow=!UseVni && !literalWord && !foreignWord &&
                          ImmediateToneKey(rawWord,key);
-            string withoutTone=rawWord.Length>0
-                ? rawWord.Substring(0,rawWord.Length-1)+key : rawWord+key;
+            // Test the composed syllable, not raw key spelling. "kieer"
+            // contains an extra e for the ê shape, but "kiể" + u is the
+            // valid "kiểu". In contrast, "ẽ" + e is not a valid vowel group.
+            string extendedSyllable=Normalize(Text+key);
             bool afterTone=!UseVni && !literalWord && lastToneApplied &&
                            VowelAfterTone(rawWord,key) &&
-                           !LooksVietnamese(withoutTone);
+                           !LooksVietnamese(extendedSyllable);
             rawWord+=key;
             lastTelexKey=false;
             lastToneApplied=false;

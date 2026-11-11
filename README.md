@@ -79,10 +79,16 @@ sequence cannot be treated as a late shaping command:
 Both engines test these intermediate outputs and their final word-boundary
 results, so the English lexicon cannot silently swallow a user's accent.
 A tone key can also precede the final vowel in a **valid Vietnamese diphthong**:
-`chayj → chạy` and `chajy → chạy` both work. The `exe → exe` protection
-only restores raw letters when the vowel group without the tone key would
-not form a valid Vietnamese syllable. This rule has regression tests on
-Windows and macOS.
+`chayj → chạy` and `chajy → chạy` both work. Crucially, the engine
+tests the **composed Unicode syllable**, not the raw key sequence that
+still contains shaping keys such as `ee`, `aa`, `ow`.
+This prevents a mistaken English fallback after `kieer + u → kiểu`,
+`nhieef + u → nhiều` or `vaaj + y → vậy`, while still treating
+`ex + e → exe` literally. The regression suite includes both tone-key
+orders, 30 accent/vowel combinations covering 6 syllable families and all
+5 tone keys, and 3,000 deterministic stress compositions per platform.
+These checks validate the core composer; they are not a substitute for
+end-to-end typing tests in every desktop application.
 
 ### Immediate Telex shaping (smart bilingual)
 
