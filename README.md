@@ -78,6 +78,11 @@ sequence cannot be treated as a late shaping command:
 `exe → exe`, whereas `eex → ễ` (shape before tone).
 Both engines test these intermediate outputs and their final word-boundary
 results, so the English lexicon cannot silently swallow a user's accent.
+A tone key can also precede the final vowel in a **valid Vietnamese diphthong**:
+`chayj → chạy` and `chajy → chạy` both work. The `exe → exe` protection
+only restores raw letters when the vowel group without the tone key would
+not form a valid Vietnamese syllable. This rule has regression tests on
+Windows and macOS.
 
 ### Immediate Telex shaping (smart bilingual)
 

@@ -29,7 +29,8 @@ namespace TelexMini
             {"nhowx","nhỡ"}, {"vieecj","việc"}, {"nguowis","ngưới"},
             {"esscape","escape"}, {"esscapes","escapes"}, {"asssets","assets"},
             {"offfice","office"}, {"eeeror","eeror"}, {"dddriver","ddriver"},
-            {"owwword","owword"}, {"uowwword","uowword"}, {"ESSCAPE","ESCAPE"}
+            {"owwword","owword"}, {"uowwword","uowword"}, {"ESSCAPE","ESCAPE"},
+            {"chayj","chạy"}, {"chajy","chạy"}
         };
         static void Equal(string label,string expected,string actual)
         {

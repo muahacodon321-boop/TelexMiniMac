@@ -102,6 +102,10 @@ Còn `exe → exe` (không được thành `ễ`), vì `x` chen
 giữa hai nguyên âm không tạo thành quy trình gõ `ê` rồi thêm
 dấu ngã. Bộ gõ phải hoàn nguyên chữ gốc ngay trong lúc gõ.
 
+Riêng vần tiếng Việt hợp lệ được gõ dấu trước nguyên âm cuối vẫn phải hoạt
+động: `chayj → chạy` và `chajy → chạy` đều được hỗ trợ. Không áp dụng
+máy móc quy tắc `exe` cho vần `ay`, `uy`, ...
+
 ## Gõ lặp phím để hủy dấu (kiểu UniKey)
 
 Trong chế độ V, nếu một phím Telex đã tạo dấu hoặc biến đổi chữ, gõ lại

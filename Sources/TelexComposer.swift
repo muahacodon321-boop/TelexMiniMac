@@ -327,8 +327,10 @@ final class TelexComposer {
         let prior=text
         let toneNow = !useVni && !literal && !foreignWord &&
                       Self.immediateToneKey(raw,key)
+        let withoutTone=String(raw.dropLast())+String(key)
         let afterTone = !useVni && !literal && lastToneApplied &&
-                        Self.vowelAfterTone(raw,key)
+                        Self.vowelAfterTone(raw,key) &&
+                        !Self.looksVietnamese(withoutTone)
         raw.append(key)
         lastTelexKey=false
         lastToneApplied=false

@@ -16,7 +16,9 @@ import Foundation
             ("quoocs","quốc"),("duongdwf","đường"),
             ("ddoojng","động"),("cawsn","cắn"),
             ("tuwj","tự"),("nhowx","nhỡ"),("vieecj","việc"),
-            ("phowr","phở"),("phuws","phứ"),("trawsng","trắng")
+            ("phowr","phở"),("phuws","phứ"),("trawsng","trắng"),
+            ("chayj","chạy"),("chajy","chạy"),("chay","chay"),
+            ("cha","cha")
         ]
         let english=["office","assets","testing","framework","plugin",
                      "password","dashboard","release","browser","github","script","hello",
